@@ -17,10 +17,12 @@ usage() {
             2 or design    : デザインワーカー（右上）
             3 or accounting: 経理ワーカー（右下）
             all            : 全ペインに送信
+  -e        メッセージ送信後にEnterキーも送信（実行）
   -h        このヘルプを表示
 
 例:
-  ./send_message.sh -p manager "タスクを開始してください"
+  ./send_message.sh -p manager "hello"              # テキスト入力のみ
+  ./send_message.sh -p manager -e "hello"           # テキスト入力後Enter
   ./send_message.sh -p 0 "マネージャーへのメッセージ"
   ./send_message.sh -p all "全員へのブロードキャスト"
 EOF
@@ -64,12 +66,16 @@ get_pane_number() {
 # メイン処理
 PANE=""
 MESSAGE=""
+EXECUTE=false
 
 # オプション解析
-while getopts "p:h" opt; do
+while getopts "p:eh" opt; do
     case $opt in
         p)
             PANE="$OPTARG"
+            ;;
+        e)
+            EXECUTE=true
             ;;
         h)
             usage
@@ -99,7 +105,12 @@ PANE_NUM=$(get_pane_number "$PANE")
 if [ "$PANE_NUM" = "all" ]; then
     echo "Broadcasting message to all panes..."
     for i in 0 1 2 3; do
-        tmux send-keys -t $SESSION_NAME:main.$i "$MESSAGE" C-m
+        # Claudeに文字列を送信（改行なし）
+        tmux send-keys -t $SESSION_NAME:main.$i "$MESSAGE"
+        # -eオプションがある場合のみEnterを送信
+        if [ "$EXECUTE" = true ]; then
+            tmux send-keys -t $SESSION_NAME:main.$i C-m
+        fi
     done
     echo "Message sent to all panes."
 else
@@ -112,6 +123,11 @@ else
     esac
 
     echo "Sending message to $PANE_NAME..."
-    tmux send-keys -t $SESSION_NAME:main.$PANE_NUM "$MESSAGE" C-m
+    # Claudeに文字列を送信（改行なし）
+    tmux send-keys -t $SESSION_NAME:main.$PANE_NUM "$MESSAGE"
+    # -eオプションがある場合のみEnterを送信
+    if [ "$EXECUTE" = true ]; then
+        tmux send-keys -t $SESSION_NAME:main.$PANE_NUM C-m
+    fi
     echo "Message sent successfully."
 fi
