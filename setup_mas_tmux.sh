@@ -9,8 +9,15 @@ CLAUDED_COMMAND="clauded"  # claudedコマンド（独自エイリアス）
 # 既存のセッションをチェック
 if tmux has-session -t $SESSION_NAME 2>/dev/null; then
     echo "Session '$SESSION_NAME' already exists."
-    echo "Attaching to existing session..."
-    tmux attach-session -t $SESSION_NAME
+
+    # ターミナル内かつTMUX外の場合のみアタッチ
+    if [ -t 0 ] && [ -z "$TMUX" ]; then
+        echo "Attaching to existing session..."
+        tmux attach-session -t $SESSION_NAME
+    else
+        echo "To attach to the session, run: tmux attach -t $SESSION_NAME"
+        echo "To kill the session, run: tmux kill-session -t $SESSION_NAME"
+    fi
     exit 0
 fi
 
@@ -56,6 +63,11 @@ tmux send-keys -t $SESSION_NAME:main.3 "$CLAUDED_COMMAND --model sonnet" C-m
 
 echo "All clauded instances started successfully!"
 
-# セッションにアタッチ
-echo "Attaching to session '$SESSION_NAME'..."
-tmux attach-session -t $SESSION_NAME
+# セッションにアタッチ（ターミナル内の場合のみ）
+if [ -t 0 ] && [ -z "$TMUX" ]; then
+    echo "Attaching to session '$SESSION_NAME'..."
+    tmux attach-session -t $SESSION_NAME
+else
+    echo "Session '$SESSION_NAME' created successfully!"
+    echo "To attach to the session, run: tmux attach -t $SESSION_NAME"
+fi
