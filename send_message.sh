@@ -3,7 +3,28 @@
 # mas-tmux マルチユニット メッセージ送信スクリプト
 # 13エージェントへの柔軟なメッセージルーティング
 
-SESSION_NAME="mas-tmux"
+# スクリプトディレクトリを取得
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# プロジェクトライブラリをロード（存在する場合）
+if [ -f "$SCRIPT_DIR/lib/project.sh" ]; then
+    source "$SCRIPT_DIR/lib/project.sh"
+
+    # プロジェクトルートを検出
+    if command -v find_project_root &> /dev/null; then
+        if PROJECT_ROOT=$(find_project_root); then
+            load_project_config "$PROJECT_ROOT"
+            SESSION_NAME="$PROJECT_SESSION_NAME"
+        else
+            SESSION_NAME="mas-tmux"  # デフォルト
+        fi
+    else
+        SESSION_NAME="mas-tmux"  # デフォルト
+    fi
+else
+    # セッション名（デフォルト）
+    SESSION_NAME="mas-tmux"
+fi
 
 # 使い方を表示する関数
 usage() {

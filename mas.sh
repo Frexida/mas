@@ -14,11 +14,16 @@ if [ -L "$SCRIPT_PATH" ]; then
 fi
 SCRIPT_DIR="$( cd "$( dirname "$SCRIPT_PATH" )" && pwd )"
 
-# セッション名の設定
+# セッション名の設定（プロジェクトモードで上書きされる可能性あり）
 SESSION_NAME="mas-tmux"
 
 # バージョン情報
 VERSION="2.0.0"
+
+# プロジェクト管理ライブラリをロード
+if [ -f "$SCRIPT_DIR/lib/project.sh" ]; then
+    source "$SCRIPT_DIR/lib/project.sh"
+fi
 
 # =============================================================================
 # 共通関数
@@ -70,10 +75,11 @@ start_clauded() {
     local unit=$3
     local name=$4
     local model=$5
+    local unit_base_dir=${6:-"$SCRIPT_DIR/unit"}  # オプション：unit基底ディレクトリ
 
     tmux send-keys -t "$SESSION_NAME:$window.$pane" "echo '=== Starting $name (Unit $unit) with $model ==='" C-m
     sleep 0.3
-    tmux send-keys -t "$SESSION_NAME:$window.$pane" "cd $SCRIPT_DIR/unit/$unit" C-m
+    tmux send-keys -t "$SESSION_NAME:$window.$pane" "cd $unit_base_dir/$unit" C-m
     sleep 0.3
 
     # ワークフロー指示書が存在する場合、初期指示として表示
@@ -99,6 +105,7 @@ Global Options:
   -h, --help         このヘルプを表示
 
 Subcommands:
+  init               カレントディレクトリをmasプロジェクトとして初期化
   start              Multi-Agent Systemを起動（デフォルト）
   send               エージェントにメッセージを送信
   status             システムの状態を表示
@@ -148,6 +155,42 @@ Options:
   mas start --skip-init        # 初期化をスキップ
   mas start --no-attach        # バックグラウンドで起動
   mas --skip-init              # startを省略（後方互換性）
+EOF
+}
+
+usage_init() {
+    cat << EOF
+mas init - カレントディレクトリをmasプロジェクトとして初期化
+
+使い方:
+  mas init [options]
+
+Options:
+  --name NAME        プロジェクト名（デフォルト: ディレクトリ名）
+  --template TYPE    テンプレート（full|minimal）（デフォルト: full）
+  -h, --help         このヘルプを表示
+
+説明:
+  カレントディレクトリをmasプロジェクトとして初期化します。
+  以下のファイル・ディレクトリが作成されます：
+
+  .masrc             プロジェクト設定ファイル
+  .mas/              設定ディレクトリ
+  unit/              13エージェントのディレクトリ
+  workflows/         ワークフロー定義
+
+テンプレート:
+  full               13エージェント全て（デフォルト）
+  minimal            メタマネージャーのみ（将来対応予定）
+
+例:
+  mas init                          # カレントディレクトリを初期化
+  mas init --name my-project        # プロジェクト名を指定
+  mas init --template full          # フルテンプレートで初期化
+
+初期化後:
+  mas start          # プロジェクトでシステムを起動
+  mas send -t 00 "タスク"  # エージェントへメッセージ送信
 EOF
 }
 
@@ -277,6 +320,118 @@ EOF
 # サブコマンド実装
 # =============================================================================
 
+# init サブコマンド
+cmd_init() {
+    local project_name=""
+    local template="full"
+
+    # オプション解析
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --name)
+                project_name="$2"
+                shift 2
+                ;;
+            --template)
+                template="$2"
+                shift 2
+                ;;
+            -h|--help)
+                usage_init
+                exit 0
+                ;;
+            *)
+                print_error "不明なオプション: $1"
+                usage_init
+                exit 1
+                ;;
+        esac
+    done
+
+    # カレントディレクトリで初期化
+    local target_dir="$PWD"
+
+    # 既に初期化されているかチェック
+    if [ -f "$target_dir/.masrc" ]; then
+        print_error "このディレクトリは既にmasプロジェクトとして初期化されています"
+        print_info ".masrc: $target_dir/.masrc"
+        print_info ""
+        print_info "既存のプロジェクトを起動するには: mas start"
+        exit 1
+    fi
+
+    # プロジェクト名の決定
+    if [ -z "$project_name" ]; then
+        project_name=$(basename "$target_dir")
+    fi
+
+    # プロジェクト名をサニタイズ
+    if command -v sanitize_project_name &> /dev/null; then
+        project_name=$(sanitize_project_name "$project_name")
+    fi
+
+    print_info "=== mas プロジェクト初期化 ==="
+    print_info "ディレクトリ: $target_dir"
+    print_info "プロジェクト名: $project_name"
+    print_info "テンプレート: $template"
+    echo ""
+
+    # プロジェクト設定を作成
+    if command -v save_project_config &> /dev/null; then
+        save_project_config "$target_dir" "$project_name"
+        print_success ".masrc を作成しました"
+        print_success ".mas/config.json を作成しました"
+    else
+        print_error "プロジェクトライブラリが見つかりません"
+        exit 1
+    fi
+
+    # unit/とworkflows/ディレクトリを作成
+    mkdir -p "$target_dir/unit"
+    mkdir -p "$target_dir/workflows"
+    print_success "unit/ ディレクトリを作成しました"
+    print_success "workflows/ ディレクトリを作成しました"
+
+    # ワークフローテンプレートをコピー
+    if [ -d "$SCRIPT_DIR/workflows" ]; then
+        cp -r "$SCRIPT_DIR/workflows/"*.md "$target_dir/workflows/" 2>/dev/null || true
+        print_success "ワークフローテンプレートをコピーしました"
+    else
+        print_warning "ワークフローテンプレートが見つかりません"
+    fi
+
+    # 各unitを初期化
+    print_info ""
+    print_info "=== 13エージェントを初期化中 ==="
+
+    # 初期化スクリプトを実行
+    if [ -x "$SCRIPT_DIR/init_unit.sh" ]; then
+        # 環境変数でターゲットディレクトリを指定
+        export TARGET_UNIT_DIR="$target_dir/unit"
+        export TARGET_WORKFLOWS_DIR="$target_dir/workflows"
+
+        # init_unit.shを実行
+        "$SCRIPT_DIR/init_unit.sh"
+
+        # 環境変数をクリーンアップ
+        unset TARGET_UNIT_DIR
+        unset TARGET_WORKFLOWS_DIR
+    else
+        print_error "init_unit.sh が見つかりません"
+        print_info "手動で各unitディレクトリを初期化してください"
+    fi
+
+    echo ""
+    print_success "=== 初期化完了 ==="
+    print_info ""
+    print_info "次のステップ:"
+    print_info "  mas start       - マルチエージェントシステムを起動"
+    print_info "  mas send -t 00 \"タスク\"  - エージェントへメッセージ送信"
+    print_info "  mas --help      - ヘルプを表示"
+    print_info ""
+    print_info "プロジェクトディレクトリ: $target_dir"
+}
+
 # start サブコマンド
 cmd_start() {
     local skip_init=false
@@ -305,20 +460,58 @@ cmd_start() {
         esac
     done
 
-    print_info "=== Multi-Agent System マルチユニット起動 ==="
+    # プロジェクトモードの検出とセットアップ
+    local unit_dir="$SCRIPT_DIR/unit"  # デフォルト（レガシーモード）
+    local session_name="$SESSION_NAME"  # デフォルト
+
+    # プロジェクトルートを検出
+    if command -v find_project_root &> /dev/null; then
+        if PROJECT_ROOT=$(find_project_root); then
+            # プロジェクトモード
+            load_project_config "$PROJECT_ROOT"
+            unit_dir="$PROJECT_ROOT/unit"
+            session_name="$PROJECT_SESSION_NAME"
+
+            print_info "=== Multi-Agent System 起動 (プロジェクトモード) ==="
+            print_info "プロジェクト: $PROJECT_NAME"
+            print_info "ルート: $PROJECT_ROOT"
+            print_info "セッション: $session_name"
+        else
+            # レガシーモード
+            print_info "=== Multi-Agent System 起動 (レガシーモード) ==="
+            print_warning "プロジェクトが検出されませんでした。システムディレクトリを使用します。"
+            print_info "プロジェクトを初期化するには: mas init"
+        fi
+    else
+        print_info "=== Multi-Agent System マルチユニット起動 ==="
+    fi
+
     echo ""
+
+    # セッション名を更新
+    SESSION_NAME="$session_name"
 
     # Unit初期化（スキップ可能）
     if [ "$skip_init" = false ]; then
         print_info "Unit初期化を実行中..."
 
         if [ -x "$SCRIPT_DIR/init_unit.sh" ]; then
+            # プロジェクトモードの場合、環境変数を設定
+            if [ -n "$PROJECT_ROOT" ]; then
+                export TARGET_UNIT_DIR="$unit_dir"
+                export TARGET_WORKFLOWS_DIR="$PROJECT_ROOT/workflows"
+            fi
+
             if "$SCRIPT_DIR/init_unit.sh"; then
                 print_success "Unit初期化完了（またはスキップ）"
             else
                 print_error "Unit初期化に失敗しました"
                 exit 1
             fi
+
+            # 環境変数をクリーンアップ
+            unset TARGET_UNIT_DIR
+            unset TARGET_WORKFLOWS_DIR
         else
             print_error "init_unit.sh が見つからないか実行可能ではありません: $SCRIPT_DIR/init_unit.sh"
             print_info "mas-tmux ディレクトリから実行するか、--skip-init オプションを使用してください"
@@ -364,34 +557,34 @@ cmd_start() {
 
     # Window 0: メタマネージャー（単体）
     print_info "Window 0: メタマネージャーを起動..."
-    start_clauded "meta" 0 "00" "メタマネージャー" "opus"
+    start_clauded "meta" 0 "00" "メタマネージャー" "opus" "$unit_dir"
 
     sleep 1
 
     # Window 1: デザインユニット（マネージャー含む）
     print_info "Window 1: デザインユニットを起動..."
-    start_clauded "design" 0 "10" "デザインマネージャー" "opus"
-    start_clauded "design" 1 "11" "UIデザイナー" "sonnet"
-    start_clauded "design" 2 "12" "UXデザイナー" "sonnet"
-    start_clauded "design" 3 "13" "ビジュアルデザイナー" "sonnet"
+    start_clauded "design" 0 "10" "デザインマネージャー" "opus" "$unit_dir"
+    start_clauded "design" 1 "11" "UIデザイナー" "sonnet" "$unit_dir"
+    start_clauded "design" 2 "12" "UXデザイナー" "sonnet" "$unit_dir"
+    start_clauded "design" 3 "13" "ビジュアルデザイナー" "sonnet" "$unit_dir"
 
     sleep 1
 
     # Window 2: 開発ユニット（マネージャー含む）
     print_info "Window 2: 開発ユニットを起動..."
-    start_clauded "development" 0 "20" "開発マネージャー" "opus"
-    start_clauded "development" 1 "21" "フロントエンド開発" "sonnet"
-    start_clauded "development" 2 "22" "バックエンド開発" "sonnet"
-    start_clauded "development" 3 "23" "DevOps" "sonnet"
+    start_clauded "development" 0 "20" "開発マネージャー" "opus" "$unit_dir"
+    start_clauded "development" 1 "21" "フロントエンド開発" "sonnet" "$unit_dir"
+    start_clauded "development" 2 "22" "バックエンド開発" "sonnet" "$unit_dir"
+    start_clauded "development" 3 "23" "DevOps" "sonnet" "$unit_dir"
 
     sleep 1
 
     # Window 3: 経営・会計ユニット（マネージャー含む）
     print_info "Window 3: 経営・会計ユニットを起動..."
-    start_clauded "business" 0 "30" "経営・会計マネージャー" "opus"
-    start_clauded "business" 1 "31" "会計担当" "sonnet"
-    start_clauded "business" 2 "32" "戦略担当" "sonnet"
-    start_clauded "business" 3 "33" "分析担当" "sonnet"
+    start_clauded "business" 0 "30" "経営・会計マネージャー" "opus" "$unit_dir"
+    start_clauded "business" 1 "31" "会計担当" "sonnet" "$unit_dir"
+    start_clauded "business" 2 "32" "戦略担当" "sonnet" "$unit_dir"
+    start_clauded "business" 3 "33" "分析担当" "sonnet" "$unit_dir"
 
     print_success "全13エージェント起動完了"
     echo ""
@@ -499,14 +692,33 @@ cmd_status() {
         esac
     done
 
+    # プロジェクトモードの検出
+    local session_name="$SESSION_NAME"
+    if command -v find_project_root &> /dev/null; then
+        if PROJECT_ROOT=$(find_project_root); then
+            load_project_config "$PROJECT_ROOT"
+            session_name="$PROJECT_SESSION_NAME"
+            SESSION_NAME="$session_name"  # グローバル変数を更新
+        fi
+    fi
+
     if ! session_exists; then
-        print_warning "セッション '$SESSION_NAME' は実行されていません"
+        print_warning "セッション '$session_name' は実行されていません"
         print_info "起動するには: mas start"
         exit 1
     fi
 
     print_info "=== Multi-Agent System Status ==="
     echo ""
+
+    # プロジェクト情報を表示
+    if [ -n "$PROJECT_ROOT" ]; then
+        print_info "Project:"
+        echo "  Root: $PROJECT_ROOT"
+        echo "  Name: $PROJECT_NAME"
+        echo "  Config: $PROJECT_ROOT/.masrc"
+        echo ""
+    fi
 
     # セッション情報
     print_info "Session:"
@@ -793,6 +1005,9 @@ main() {
 
     # サブコマンドディスパッチ
     case "$SUBCOMMAND" in
+        init)
+            cmd_init "$@"
+            ;;
         start)
             cmd_start "$@"
             ;;

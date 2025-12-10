@@ -24,7 +24,10 @@ print_warning() {
 
 # スクリプトのディレクトリを取得
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-UNIT_DIR="${SCRIPT_DIR}/unit"
+
+# ターゲットディレクトリの設定（環境変数があればそれを使用）
+UNIT_DIR="${TARGET_UNIT_DIR:-${SCRIPT_DIR}/unit}"
+WORKFLOWS_DIR="${TARGET_WORKFLOWS_DIR:-${SCRIPT_DIR}/workflows}"
 
 # openspecがインストールされているか確認
 check_openspec() {
@@ -130,14 +133,14 @@ EOF
         "31"|"32"|"33") workflow_file="31-33_business_workers.md" ;;
     esac
 
-    if [ -n "$workflow_file" ] && [ -f "$SCRIPT_DIR/workflows/$workflow_file" ]; then
-        cp "$SCRIPT_DIR/workflows/$workflow_file" "$unit_path/WORKFLOW_INSTRUCTIONS.md"
+    if [ -n "$workflow_file" ] && [ -f "$WORKFLOWS_DIR/$workflow_file" ]; then
+        cp "$WORKFLOWS_DIR/$workflow_file" "$unit_path/WORKFLOW_INSTRUCTIONS.md"
         print_success "ワークフロー指示書をコピー: $workflow_file"
     fi
 
     # 共通ガイドラインをワーカーにコピー
-    if [[ "$unit_num" =~ ^(11|12|13|21|22|23|31|32|33)$ ]] && [ -f "$SCRIPT_DIR/workflows/workers_common.md" ]; then
-        cp "$SCRIPT_DIR/workflows/workers_common.md" "$unit_path/WORKER_GUIDELINES.md"
+    if [[ "$unit_num" =~ ^(11|12|13|21|22|23|31|32|33)$ ]] && [ -f "$WORKFLOWS_DIR/workers_common.md" ]; then
+        cp "$WORKFLOWS_DIR/workers_common.md" "$unit_path/WORKER_GUIDELINES.md"
         print_success "ワーカー共通ガイドラインをコピー"
     fi
 
