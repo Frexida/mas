@@ -29,6 +29,7 @@ usage() {
     all        : 全エージェント（13体全て）
 
   -e         メッセージ送信後にEnterキーも送信（実行）
+  -s AGENT   送信者のエージェント番号（自動的にループバックを防ぐ）
   -h         このヘルプを表示
 
 例:
@@ -36,6 +37,7 @@ usage() {
   ./send_message.sh -p design "デザインチーム全体への通知"
   ./send_message.sh -p managers -e "マネージャー会議を開始"
   ./send_message.sh -p all "全エージェントへのお知らせ"
+  ./send_message.sh -p managers -s 00 "メタマネージャーから（00を除く）"
 EOF
     exit 1
 }
@@ -54,23 +56,23 @@ get_window_and_pane() {
     local agent=$1
 
     case "$agent" in
-        # Window 0: マネージャー群
-        00) echo "managers.0" ;;  # メタマネージャー
-        10) echo "managers.1" ;;  # デザインマネージャー（マネージャービュー）
-        20) echo "managers.2" ;;  # 開発マネージャー（マネージャービュー）
-        30) echo "managers.3" ;;  # 経営・会計マネージャー（マネージャービュー）
+        # Window 0: メタマネージャー
+        00) echo "meta.0" ;;       # メタマネージャー（単体）
 
         # Window 1: デザインユニット
-        11) echo "design.1" ;;    # UIデザイナー
-        12) echo "design.2" ;;    # UXデザイナー
-        13) echo "design.3" ;;    # ビジュアルデザイナー
+        10) echo "design.0" ;;     # デザインマネージャー
+        11) echo "design.1" ;;     # UIデザイナー
+        12) echo "design.2" ;;     # UXデザイナー
+        13) echo "design.3" ;;     # ビジュアルデザイナー
 
         # Window 2: 開発ユニット
+        20) echo "development.0" ;; # 開発マネージャー
         21) echo "development.1" ;; # フロントエンド
         22) echo "development.2" ;; # バックエンド
         23) echo "development.3" ;; # DevOps
 
         # Window 3: 経営・会計ユニット
+        30) echo "business.0" ;;   # 経営・会計マネージャー
         31) echo "business.1" ;;   # 会計
         32) echo "business.2" ;;   # 戦略
         33) echo "business.3" ;;   # 分析
@@ -84,6 +86,7 @@ get_window_and_pane() {
 # ターゲットをエージェントリストに変換
 expand_target() {
     local target=$1
+    local sender=${2:-}  # オプション: 送信者のエージェント番号
 
     case "$target" in
         # 個別エージェント（2桁番号）
@@ -104,10 +107,21 @@ expand_target() {
 
         # グループ単位
         managers)
-            echo "00 10 20 30"
+            # 送信者が00（メタマネージャー）の場合は自分を除外
+            if [ "$sender" = "00" ]; then
+                echo "10 20 30"
+            else
+                echo "00 10 20 30"
+            fi
             ;;
         all)
-            echo "00 10 11 12 13 20 21 22 23 30 31 32 33"
+            # 送信者を除外（指定されている場合）
+            local all_agents="00 10 11 12 13 20 21 22 23 30 31 32 33"
+            if [ -n "$sender" ]; then
+                echo "$all_agents" | sed "s/\b$sender\b//g"
+            else
+                echo "$all_agents"
+            fi
             ;;
 
         *)
@@ -122,6 +136,12 @@ send_to_agent() {
     local agent=$1
     local message=$2
     local execute=$3
+    local sender=${4:-}  # オプション: 送信者のエージェント番号
+
+    # 送信者が指定されており、送信先が送信者と同じ場合はスキップ
+    if [ -n "$sender" ] && [ "$agent" = "$sender" ]; then
+        return 0  # スキップ（エラーではない）
+    fi
 
     # ウィンドウとペインを取得
     local window_pane=$(get_window_and_pane "$agent")
@@ -168,12 +188,16 @@ get_agent_name() {
 TARGET=""
 MESSAGE=""
 EXECUTE=false
+SENDER=""  # 送信者のエージェント番号
 
 # オプション解析
-while getopts "p:eh" opt; do
+while getopts "p:s:eh" opt; do
     case $opt in
         p)
             TARGET="$OPTARG"
+            ;;
+        s)
+            SENDER="$OPTARG"
             ;;
         e)
             EXECUTE=true
@@ -199,8 +223,8 @@ fi
 # セッション確認
 check_session
 
-# ターゲットをエージェントリストに展開
-AGENTS=$(expand_target "$TARGET")
+# ターゲットをエージェントリストに展開（送信者情報を渡す）
+AGENTS=$(expand_target "$TARGET" "$SENDER")
 
 # エージェント数をカウント
 AGENT_COUNT=$(echo $AGENTS | wc -w)
@@ -209,7 +233,7 @@ if [ $AGENT_COUNT -eq 1 ]; then
     # 単一エージェントへの送信
     AGENT_NAME=$(get_agent_name "$AGENTS")
     echo "Sending message to $AGENT_NAME (Unit $AGENTS)..."
-    if send_to_agent "$AGENTS" "$MESSAGE" "$EXECUTE"; then
+    if send_to_agent "$AGENTS" "$MESSAGE" "$EXECUTE" "$SENDER"; then
         echo "Message sent successfully."
     else
         echo "Failed to send message."
@@ -223,7 +247,7 @@ else
     for agent in $AGENTS; do
         AGENT_NAME=$(get_agent_name "$agent")
         echo -n "  → $AGENT_NAME (Unit $agent)... "
-        if send_to_agent "$agent" "$MESSAGE" "$EXECUTE"; then
+        if send_to_agent "$agent" "$MESSAGE" "$EXECUTE" "$SENDER"; then
             echo "OK"
             ((SUCCESS_COUNT++))
         else

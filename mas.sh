@@ -340,9 +340,9 @@ cmd_start() {
     # tmuxセッション作成
     print_info "tmuxセッション '$SESSION_NAME' を作成中..."
 
-    # セッション作成（Window 0: managers）
-    tmux new-session -d -s "$SESSION_NAME" -n managers
-    setup_window_panes managers
+    # セッション作成（Window 0: meta - メタマネージャー専用）
+    tmux new-session -d -s "$SESSION_NAME" -n meta
+    # metaウィンドウは1ペインのみ（分割しない）
 
     # Window 1: design
     tmux new-window -t "$SESSION_NAME:1" -n design
@@ -356,22 +356,19 @@ cmd_start() {
     tmux new-window -t "$SESSION_NAME:3" -n business
     setup_window_panes business
 
-    print_success "tmuxセッション作成完了（4ウィンドウ×4ペイン）"
+    print_success "tmuxセッション作成完了（meta: 1ペイン, 他: 4ペイン）"
     echo ""
 
     # 各エージェント起動
     print_info "13エージェントを起動中..."
 
-    # Window 0: マネージャー群
-    print_info "Window 0: マネージャー群を起動..."
-    start_clauded "managers" 0 "00" "メタマネージャー" "opus"
-    start_clauded "managers" 1 "10" "デザインマネージャー" "opus"
-    start_clauded "managers" 2 "20" "開発マネージャー" "opus"
-    start_clauded "managers" 3 "30" "経営・会計マネージャー" "opus"
+    # Window 0: メタマネージャー（単体）
+    print_info "Window 0: メタマネージャーを起動..."
+    start_clauded "meta" 0 "00" "メタマネージャー" "opus"
 
     sleep 1
 
-    # Window 1: デザインユニット
+    # Window 1: デザインユニット（マネージャー含む）
     print_info "Window 1: デザインユニットを起動..."
     start_clauded "design" 0 "10" "デザインマネージャー" "opus"
     start_clauded "design" 1 "11" "UIデザイナー" "sonnet"
@@ -380,7 +377,7 @@ cmd_start() {
 
     sleep 1
 
-    # Window 2: 開発ユニット
+    # Window 2: 開発ユニット（マネージャー含む）
     print_info "Window 2: 開発ユニットを起動..."
     start_clauded "development" 0 "20" "開発マネージャー" "opus"
     start_clauded "development" 1 "21" "フロントエンド開発" "sonnet"
@@ -389,7 +386,7 @@ cmd_start() {
 
     sleep 1
 
-    # Window 3: 経営・会計ユニット
+    # Window 3: 経営・会計ユニット（マネージャー含む）
     print_info "Window 3: 経営・会計ユニットを起動..."
     start_clauded "business" 0 "30" "経営・会計マネージャー" "opus"
     start_clauded "business" 1 "31" "会計担当" "sonnet"
@@ -524,7 +521,7 @@ cmd_status() {
 
     # エージェントマッピング
     print_info "Agent Mapping:"
-    echo "  Window 0 (managers):     00, 10, 20, 30"
+    echo "  Window 0 (meta):         00"
     echo "  Window 1 (design):       10, 11, 12, 13"
     echo "  Window 2 (development):  20, 21, 22, 23"
     echo "  Window 3 (business):     30, 31, 32, 33"
@@ -532,7 +529,7 @@ cmd_status() {
 
     if [ "$detail" = true ]; then
         print_info "Pane Details:"
-        for window in managers design development business; do
+        for window in meta design development business; do
             echo "  $window window:"
             tmux list-panes -t "$SESSION_NAME:$window" -F "    Pane #{pane_index}: #{pane_width}x#{pane_height} (PID: #{pane_pid})"
         done
