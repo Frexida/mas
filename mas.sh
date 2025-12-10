@@ -469,14 +469,14 @@ cmd_send() {
         exit 1
     fi
 
-    # send_message.shを呼び出し
-    local cmd="$SCRIPT_DIR/send_message.sh -p \"$target\""
+    # send_message.shを呼び出し（配列を使って安全に）
+    local cmd_args=("$SCRIPT_DIR/send_message.sh" "-p" "$target")
     if [ "$execute" = true ]; then
-        cmd="$cmd -e"
+        cmd_args+=("-e")
     fi
-    cmd="$cmd \"$message\""
+    cmd_args+=("$message")
 
-    eval "$cmd"
+    "${cmd_args[@]}"
 }
 
 # status サブコマンド

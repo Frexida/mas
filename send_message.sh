@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # mas-tmux マルチユニット メッセージ送信スクリプト
 # 13エージェントへの柔軟なメッセージルーティング
@@ -55,25 +55,25 @@ get_window_and_pane() {
 
     case "$agent" in
         # Window 0: マネージャー群
-        00) echo "managers:0" ;;  # メタマネージャー
-        10) echo "managers:1" ;;  # デザインマネージャー（マネージャービュー）
-        20) echo "managers:2" ;;  # 開発マネージャー（マネージャービュー）
-        30) echo "managers:3" ;;  # 経営・会計マネージャー（マネージャービュー）
+        00) echo "managers.0" ;;  # メタマネージャー
+        10) echo "managers.1" ;;  # デザインマネージャー（マネージャービュー）
+        20) echo "managers.2" ;;  # 開発マネージャー（マネージャービュー）
+        30) echo "managers.3" ;;  # 経営・会計マネージャー（マネージャービュー）
 
         # Window 1: デザインユニット
-        11) echo "design:1" ;;    # UIデザイナー
-        12) echo "design:2" ;;    # UXデザイナー
-        13) echo "design:3" ;;    # ビジュアルデザイナー
+        11) echo "design.1" ;;    # UIデザイナー
+        12) echo "design.2" ;;    # UXデザイナー
+        13) echo "design.3" ;;    # ビジュアルデザイナー
 
         # Window 2: 開発ユニット
-        21) echo "development:1" ;; # フロントエンド
-        22) echo "development:2" ;; # バックエンド
-        23) echo "development:3" ;; # DevOps
+        21) echo "development.1" ;; # フロントエンド
+        22) echo "development.2" ;; # バックエンド
+        23) echo "development.3" ;; # DevOps
 
         # Window 3: 経営・会計ユニット
-        31) echo "business:1" ;;   # 会計
-        32) echo "business:2" ;;   # 戦略
-        33) echo "business:3" ;;   # 分析
+        31) echo "business.1" ;;   # 会計
+        32) echo "business.2" ;;   # 戦略
+        33) echo "business.3" ;;   # 分析
 
         *)
             echo ""
