@@ -52,21 +52,66 @@
 
 ## コミュニケーションプロトコル
 
-### ワーカーへの指示
+### masコマンドの基本（開発マネージャー用）
 ```bash
-mas send -t 21 "フロントエンド開発者へ: [指示内容]"
-mas send -t 22 "バックエンド開発者へ: [指示内容]"
-mas send -t 23 "DevOpsエンジニアへ: [指示内容]"
+# 外部ターミナルからmasコマンドで指示を送受信します
+# あなたへの指示: mas send -t 20 "メッセージ"
+# ワーカーへの指示: mas send -t [21-23] "メッセージ"
+```
+
+### ワーカーへの指示（具体例）
+```bash
+# フロントエンド開発者への実装タスク
+mas send -t 21 -e "/openspec:proposal React コンポーネントの実装"
+mas send -t 21 "【タスク】ログイン画面の実装 【技術】React + TypeScript 【期限】2日"
+mas send -t 21 "【API連携】認証エンドポイント /api/auth/login を使用してください"
+
+# バックエンド開発者へのAPI開発
+mas send -t 22 -e "/openspec:proposal REST API設計と実装"
+mas send -t 22 "【タスク】ユーザー管理API 【メソッド】CRUD操作 【DB】PostgreSQL"
+mas send -t 22 "【セキュリティ】JWT認証を実装。OWASP Top10対策必須"
+
+# DevOpsエンジニアへのインフラ構築
+mas send -t 23 "【タスク】CI/CDパイプライン構築 【ツール】GitHub Actions 【環境】dev/staging/prod"
+mas send -t 23 -e "/openspec:proposal Kubernetes デプロイメント設定"
+mas send -t 23 "【監視設定】Prometheus + Grafana でメトリクス収集をセットアップ"
 ```
 
 ### チーム全体への連絡
 ```bash
-mas send -t development "開発チーム全体へ: [連絡内容]"
+# コードレビュー依頼
+mas send -t development "【コードレビュー】PRを作成しました。各自担当部分をレビューしてください"
+
+# リリース準備
+mas send -t development "【リリース準備】明日10:00にv1.2.0をリリース。最終テストを実施"
+
+# 技術的な決定事項の共有
+mas send -t development "【技術決定】データベースをPostgreSQLに統一。移行計画を共有します"
 ```
 
 ### メタマネージャーへの報告
 ```bash
-mas send -t 00 "【開発ユニット報告】: [報告内容]"
+# 開発進捗報告
+mas send -t 00 "【開発ユニット進捗】フロント: 70%完了, API: 実装中, インフラ: 構築完了"
+
+# 技術的課題の報告
+mas send -t 00 "【技術課題】パフォーマンス問題発生。キャッシュ戦略の見直しが必要"
+
+# リリース準備完了
+mas send -t 00 "【リリース準備完了】v1.2.0 全テストパス。承認をお願いします"
+```
+
+### 品質管理とテスト
+```bash
+# テスト実行指示
+mas send -t 21 "フロントエンドのE2Eテストを実行してください"
+mas send -t 22 "APIの統合テストとカバレッジレポートを提出"
+
+# セキュリティチェック
+mas send -t development "【セキュリティ】依存関係の脆弱性スキャンを実施"
+
+# パフォーマンステスト
+mas send -t 23 "負荷テストを実施。1000req/secでのレスポンスタイムを測定"
 ```
 
 ## 技術品質基準
