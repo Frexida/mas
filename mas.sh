@@ -5,8 +5,14 @@
 
 set -e  # エラー時に即座に終了
 
-# スクリプトのディレクトリを取得
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# スクリプトのディレクトリを取得（シンボリックリンク対応）
+# readlinkを使って実際のスクリプトパスを解決
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+if [ -L "$SCRIPT_PATH" ]; then
+    # シンボリックリンクの場合、実際のパスを取得
+    SCRIPT_PATH="$(readlink -f "$SCRIPT_PATH")"
+fi
+SCRIPT_DIR="$( cd "$( dirname "$SCRIPT_PATH" )" && pwd )"
 
 # セッション名の設定
 SESSION_NAME="mas-tmux"
@@ -309,8 +315,8 @@ cmd_start() {
                 exit 1
             fi
         else
-            print_error "init_unit.sh が見つからないか実行可能ではありません"
-            print_info "手動で実行してください: ./init_unit.sh"
+            print_error "init_unit.sh が見つからないか実行可能ではありません: $SCRIPT_DIR/init_unit.sh"
+            print_info "mas-tmux ディレクトリから実行するか、--skip-init オプションを使用してください"
         fi
     else
         print_warning "Unit初期化をスキップしました"
