@@ -118,6 +118,29 @@ EOF
 
     print_success "README作成完了: Unit ${unit_num}"
 
+    # ワークフロー指示書をコピー（存在する場合）
+    local workflow_file=""
+    case "$unit_num" in
+        "00") workflow_file="00_meta_manager.md" ;;
+        "10") workflow_file="10_design_manager.md" ;;
+        "11"|"12"|"13") workflow_file="11-13_design_workers.md" ;;
+        "20") workflow_file="20_dev_manager.md" ;;
+        "21"|"22"|"23") workflow_file="21-23_dev_workers.md" ;;
+        "30") workflow_file="30_business_manager.md" ;;
+        "31"|"32"|"33") workflow_file="31-33_business_workers.md" ;;
+    esac
+
+    if [ -n "$workflow_file" ] && [ -f "$SCRIPT_DIR/workflows/$workflow_file" ]; then
+        cp "$SCRIPT_DIR/workflows/$workflow_file" "$unit_path/WORKFLOW_INSTRUCTIONS.md"
+        print_success "ワークフロー指示書をコピー: $workflow_file"
+    fi
+
+    # 共通ガイドラインをワーカーにコピー
+    if [[ "$unit_num" =~ ^(11|12|13|21|22|23|31|32|33)$ ]] && [ -f "$SCRIPT_DIR/workflows/workers_common.md" ]; then
+        cp "$SCRIPT_DIR/workflows/workers_common.md" "$unit_path/WORKER_GUIDELINES.md"
+        print_success "ワーカー共通ガイドラインをコピー"
+    fi
+
     cd "$SCRIPT_DIR"
 }
 

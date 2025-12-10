@@ -75,6 +75,11 @@ start_clauded() {
     sleep 0.3
     tmux send-keys -t "$SESSION_NAME:$window.$pane" "cd $SCRIPT_DIR/unit/$unit" C-m
     sleep 0.3
+
+    # ワークフロー指示書が存在する場合、初期指示として表示
+    tmux send-keys -t "$SESSION_NAME:$window.$pane" "if [ -f WORKFLOW_INSTRUCTIONS.md ]; then echo ''; echo '=== ワークフロー指示書を確認してください ==='; echo 'WORKFLOW_INSTRUCTIONS.mdに役割と責任が記載されています'; echo ''; fi" C-m
+    sleep 0.3
+
     tmux send-keys -t "$SESSION_NAME:$window.$pane" "clauded --model $model" C-m
 }
 
