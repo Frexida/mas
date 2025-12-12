@@ -492,29 +492,26 @@ cmd_start() {
     SESSION_NAME="$session_name"
 
     # Unit初期化（スキップ可能）
+    # プロジェクトモードでは自動的にスキップ（mas initで既に初期化済み）
     if [ "$skip_init" = false ]; then
-        print_info "Unit初期化を実行中..."
-
-        if [ -x "$SCRIPT_DIR/init_unit.sh" ]; then
-            # プロジェクトモードの場合、環境変数を設定
-            if [ -n "$PROJECT_ROOT" ]; then
-                export TARGET_UNIT_DIR="$unit_dir"
-                export TARGET_WORKFLOWS_DIR="$PROJECT_ROOT/workflows"
-            fi
-
-            if "$SCRIPT_DIR/init_unit.sh"; then
-                print_success "Unit初期化完了（またはスキップ）"
-            else
-                print_error "Unit初期化に失敗しました"
-                exit 1
-            fi
-
-            # 環境変数をクリーンアップ
-            unset TARGET_UNIT_DIR
-            unset TARGET_WORKFLOWS_DIR
+        if [ -n "$PROJECT_ROOT" ]; then
+            # プロジェクトモードでは初期化をスキップ
+            print_info "プロジェクトモードのため初期化をスキップ（mas initで初期化済み）"
         else
-            print_error "init_unit.sh が見つからないか実行可能ではありません: $SCRIPT_DIR/init_unit.sh"
-            print_info "mas-tmux ディレクトリから実行するか、--skip-init オプションを使用してください"
+            # レガシーモードでのみ初期化を実行
+            print_info "Unit初期化を実行中..."
+
+            if [ -x "$SCRIPT_DIR/init_unit.sh" ]; then
+                if "$SCRIPT_DIR/init_unit.sh"; then
+                    print_success "Unit初期化完了（またはスキップ）"
+                else
+                    print_error "Unit初期化に失敗しました"
+                    exit 1
+                fi
+            else
+                print_error "init_unit.sh が見つからないか実行可能ではありません: $SCRIPT_DIR/init_unit.sh"
+                print_info "mas-tmux ディレクトリから実行するか、--skip-init オプションを使用してください"
+            fi
         fi
     else
         print_warning "Unit初期化をスキップしました"
@@ -587,6 +584,64 @@ cmd_start() {
     start_clauded "business" 3 "33" "分析担当" "sonnet" "$unit_dir"
 
     print_success "全13エージェント起動完了"
+    echo ""
+
+    # HTTPサーバー起動
+    print_info "HTTPサーバーを起動中..."
+    local http_pid_file="${PROJECT_ROOT:-$SCRIPT_DIR}/.mas_http.pid"
+    local http_log_file="${PROJECT_ROOT:-$SCRIPT_DIR}/.mas_http.log"
+
+    # 既存のHTTPサーバープロセスがあれば停止
+    if [ -f "$http_pid_file" ]; then
+        local old_pid=$(cat "$http_pid_file" 2>/dev/null)
+        if [ -n "$old_pid" ] && kill -0 "$old_pid" 2>/dev/null; then
+            kill "$old_pid" 2>/dev/null || true
+            sleep 0.5
+        fi
+        rm -f "$http_pid_file"
+    fi
+
+    # HTTPサーバー起動
+    # Node.js版を優先、次にPython版、最後にBash版を使用
+    if command -v node >/dev/null 2>&1 && [ -x "$SCRIPT_DIR/http_server.js" ]; then
+        export MAS_HTTP_LOG="$http_log_file"
+        export MAS_HTTP_PID="$http_pid_file"
+        export MAS_HTTP_PORT="${MAS_HTTP_PORT:-8765}"
+
+        nohup node "$SCRIPT_DIR/http_server.js" > "$http_log_file" 2>&1 &
+        local http_pid=$!
+        echo "$http_pid" > "$http_pid_file"
+    elif command -v python3 >/dev/null 2>&1 && [ -x "$SCRIPT_DIR/http_server.py" ]; then
+        export MAS_HTTP_LOG="$http_log_file"
+        export MAS_HTTP_PID="$http_pid_file"
+        export MAS_HTTP_PORT="${MAS_HTTP_PORT:-8765}"
+
+        nohup python3 "$SCRIPT_DIR/http_server.py" > /dev/null 2>&1 &
+        local http_pid=$!
+        echo "$http_pid" > "$http_pid_file"
+    elif [ -x "$SCRIPT_DIR/http_server.sh" ]; then
+        export MAS_HTTP_LOG="$http_log_file"
+        export MAS_HTTP_PID="$http_pid_file"
+        export MAS_HTTP_PORT="${MAS_HTTP_PORT:-8765}"
+
+        nohup "$SCRIPT_DIR/http_server.sh" > /dev/null 2>&1 &
+        local http_pid=$!
+        echo "$http_pid" > "$http_pid_file"
+    else
+        print_warning "http_server.sh/http_server.py が見つかりません。HTTPサーバーをスキップします"
+    fi
+
+    # HTTPサーバーの起動確認（PIDファイルがある場合のみ）
+    if [ -f "$http_pid_file" ]; then
+        local http_pid=$(cat "$http_pid_file" 2>/dev/null)
+        # 起動確認（0.5秒待機）
+        sleep 0.5
+        if kill -0 "$http_pid" 2>/dev/null; then
+            print_success "HTTPサーバー起動完了 (ポート: ${MAS_HTTP_PORT:-8765})"
+        else
+            print_warning "HTTPサーバーの起動に失敗しました"
+        fi
+    fi
     echo ""
 
     # セッションにアタッチ（オプション）
@@ -739,6 +794,31 @@ cmd_status() {
     echo "  Window 3 (business):     30, 31, 32, 33"
     echo ""
 
+    # HTTPサーバー状態
+    print_info "HTTP Server:"
+    local http_pid_file="${PROJECT_ROOT:-$SCRIPT_DIR}/.mas_http.pid"
+    local http_log_file="${PROJECT_ROOT:-$SCRIPT_DIR}/.mas_http.log"
+
+    if [ -f "$http_pid_file" ]; then
+        local http_pid=$(cat "$http_pid_file" 2>/dev/null)
+        if [ -n "$http_pid" ] && kill -0 "$http_pid" 2>/dev/null; then
+            echo "  Status: Running"
+            echo "  PID: $http_pid"
+            echo "  Port: ${MAS_HTTP_PORT:-8765}"
+            echo "  Endpoint: http://localhost:${MAS_HTTP_PORT:-8765}/message"
+            if [ -f "$http_log_file" ]; then
+                local log_lines=$(wc -l < "$http_log_file" 2>/dev/null || echo "0")
+                echo "  Log: $http_log_file ($log_lines lines)"
+            fi
+        else
+            echo "  Status: Not running (stale PID file)"
+            rm -f "$http_pid_file"
+        fi
+    else
+        echo "  Status: Not running"
+    fi
+    echo ""
+
     if [ "$detail" = true ]; then
         print_info "Pane Details:"
         for window in meta design development business; do
@@ -789,6 +869,31 @@ cmd_stop() {
     fi
 
     print_info "Multi-Agent Systemを停止中..."
+
+    # HTTPサーバー停止
+    local http_pid_file="${PROJECT_ROOT:-$SCRIPT_DIR}/.mas_http.pid"
+    if [ -f "$http_pid_file" ]; then
+        local http_pid=$(cat "$http_pid_file" 2>/dev/null)
+        if [ -n "$http_pid" ] && kill -0 "$http_pid" 2>/dev/null; then
+            print_info "HTTPサーバーを停止中..."
+            kill "$http_pid" 2>/dev/null || true
+            sleep 0.5
+            # 強制終了が必要な場合
+            if kill -0 "$http_pid" 2>/dev/null; then
+                kill -9 "$http_pid" 2>/dev/null || true
+            fi
+        fi
+        rm -f "$http_pid_file"
+        print_success "HTTPサーバーを停止しました"
+    fi
+
+    # HTTPログファイルのクリーンアップ（オプション）
+    local http_log_file="${PROJECT_ROOT:-$SCRIPT_DIR}/.mas_http.log"
+    if [ -f "$http_log_file" ]; then
+        # ログファイルは残しておく（デバッグ用）
+        print_info "HTTPログファイル: $http_log_file"
+    fi
+
     tmux kill-session -t "$SESSION_NAME"
     print_success "システムが停止しました"
 }

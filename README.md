@@ -143,6 +143,77 @@ mas-tmux/
     └── 30-33/          # 経営・会計ユニット
 ```
 
+## HTTP API
+
+システムはHTTPサーバーを内蔵しており、POSTリクエスト経由でエージェントにメッセージを送信できます。
+
+### APIエンドポイント
+- **URL**: `http://localhost:8765/message`
+- **メソッド**: POST
+- **Content-Type**: application/json
+
+### リクエスト形式
+```json
+{
+  "target": "00",           // エージェントID、ユニット名、またはグループ
+  "message": "タスク内容",   // 送信するメッセージ
+  "execute": false          // true でEnterキー送信（オプション、デフォルト: false）
+}
+```
+
+### レスポンス形式
+```json
+{
+  "status": "acknowledged",
+  "target": "00",
+  "timestamp": "2025-12-12T08:00:00.000Z"
+}
+```
+
+### 使用例
+
+#### 個別エージェントへの送信
+```bash
+curl -X POST http://localhost:8765/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target": "00",
+    "message": "新しいプロジェクトを開始してください"
+  }'
+```
+
+#### ユニット全体への送信
+```bash
+curl -X POST http://localhost:8765/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target": "design",
+    "message": "UIデザインのレビューを開始"
+  }'
+```
+
+#### コマンド実行（executeフラグ付き）
+```bash
+curl -X POST http://localhost:8765/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target": "20",
+    "message": "/openspec:proposal 新機能の実装",
+    "execute": true
+  }'
+```
+
+### HTTPサーバーの管理
+- 自動起動: `mas start` 実行時に自動的にHTTPサーバーも起動
+- ポート: デフォルトは8765（環境変数 `MAS_HTTP_PORT` で変更可能）
+- 状態確認: `mas status` でHTTPサーバーの稼働状態を確認
+- ログ: `.mas_http.log` にアクセスログが記録される
+
+### 実装の優先順位
+1. Node.js版 (`http_server.js`) - 最も効率的で推奨
+2. Python版 (`http_server.py`) - Python環境がある場合
+3. Bash版 (`http_server.sh`) - 最小限の依存関係
+
 ## ワークフロー例
 
 ### 大規模プロジェクトの開始
