@@ -601,8 +601,7 @@ cmd_start() {
         rm -f "$http_pid_file"
     fi
 
-    # HTTPサーバー起動
-    # Node.js版を優先、次にPython版、最後にBash版を使用
+    # HTTPサーバー起動（Node.js版）
     if command -v node >/dev/null 2>&1 && [ -x "$SCRIPT_DIR/http_server.js" ]; then
         export MAS_HTTP_LOG="$http_log_file"
         export MAS_HTTP_PID="$http_pid_file"
@@ -611,24 +610,8 @@ cmd_start() {
         nohup node "$SCRIPT_DIR/http_server.js" > "$http_log_file" 2>&1 &
         local http_pid=$!
         echo "$http_pid" > "$http_pid_file"
-    elif command -v python3 >/dev/null 2>&1 && [ -x "$SCRIPT_DIR/http_server.py" ]; then
-        export MAS_HTTP_LOG="$http_log_file"
-        export MAS_HTTP_PID="$http_pid_file"
-        export MAS_HTTP_PORT="${MAS_HTTP_PORT:-8765}"
-
-        nohup python3 "$SCRIPT_DIR/http_server.py" > /dev/null 2>&1 &
-        local http_pid=$!
-        echo "$http_pid" > "$http_pid_file"
-    elif [ -x "$SCRIPT_DIR/http_server.sh" ]; then
-        export MAS_HTTP_LOG="$http_log_file"
-        export MAS_HTTP_PID="$http_pid_file"
-        export MAS_HTTP_PORT="${MAS_HTTP_PORT:-8765}"
-
-        nohup "$SCRIPT_DIR/http_server.sh" > /dev/null 2>&1 &
-        local http_pid=$!
-        echo "$http_pid" > "$http_pid_file"
     else
-        print_warning "http_server.sh/http_server.py が見つかりません。HTTPサーバーをスキップします"
+        print_warning "Node.jsまたはhttp_server.jsが見つかりません。HTTPサーバーをスキップします"
     fi
 
     # HTTPサーバーの起動確認（PIDファイルがある場合のみ）

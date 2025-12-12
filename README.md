@@ -208,11 +208,7 @@ curl -X POST http://localhost:8765/message \
 - ポート: デフォルトは8765（環境変数 `MAS_HTTP_PORT` で変更可能）
 - 状態確認: `mas status` でHTTPサーバーの稼働状態を確認
 - ログ: `.mas_http.log` にアクセスログが記録される
-
-### 実装の優先順位
-1. Node.js版 (`http_server.js`) - 最も効率的で推奨
-2. Python版 (`http_server.py`) - Python環境がある場合
-3. Bash版 (`http_server.sh`) - 最小限の依存関係
+- 実装: Node.js (`http_server.js`) - わずか20行の簡潔な実装
 
 ## ワークフロー例
 
