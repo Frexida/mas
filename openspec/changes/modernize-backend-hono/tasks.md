@@ -1,241 +1,145 @@
-# Tasks: MASバックエンドのHono移行
+# Tasks: HonoベースAPIサーバーとシェルスクリプトモジュール化
 
-## Phase 1: Foundation Setup (Week 1)
+## Phase 1: APIサーバー構築（3-5日）
 
-### 1. Project Setup & Configuration
-- [ ] Bunプロジェクトの初期化とTypeScript設定
-- [ ] Honoと必要な依存関係のインストール
-- [ ] プロジェクト構造（src/, tests/, etc.）の作成
-- [ ] ESLint、Prettierの設定
-- [ ] Git hooksの設定（pre-commit、pre-push）
+### 1. Honoプロジェクトのセットアップ
+- [ ] `api/`ディレクトリの作成
+- [ ] package.jsonの初期化（bun init）
+- [ ] Honoと必要な依存関係のインストール（hono, zod）
+- [ ] TypeScript設定（tsconfig.json）
+- [ ] 基本的なディレクトリ構造の作成（routes/, types/, validators/）
 
-### 2. Basic Hono Server
-- [ ] 基本的なHonoサーバーの実装（src/server.ts）
-- [ ] ヘルスチェックエンドポイント（/health）の実装
+### 2. 基本的なサーバー実装
+- [ ] `api/server.ts`の作成
 - [ ] CORSミドルウェアの設定
-- [ ] エラーハンドリングミドルウェアの実装
-- [ ] ロギングミドルウェアの実装
+- [ ] ログミドルウェアの設定
+- [ ] エラーハンドリングの実装
+- [ ] ヘルスチェックエンドポイント（/health）の実装
 
-### 3. Shell Adapter Implementation
-- [ ] IShellAdapterインターフェースの定義
-- [ ] ShellAdapterクラスの実装（child_process wrapper）
-- [ ] コマンド実行のエラーハンドリング
-- [ ] タイムアウト処理の実装
-- [ ] シェルアダプターのユニットテスト作成
+### 3. /messageエンドポイントの移植
+- [ ] `api/routes/message.ts`の作成
+- [ ] リクエストバリデーション（Zod schema）
+- [ ] send_message.shの呼び出し処理
+- [ ] レスポンス形式の実装
+- [ ] エラーハンドリング
 
-### 4. Message Endpoint Migration
-- [ ] /messageエンドポイントのHono実装
-- [ ] 既存send_message.shとの統合
-- [ ] リクエストバリデーション（Zod）
-- [ ] レスポンス形式の統一
-- [ ] エンドポイントのテスト作成
+### 4. /runsエンドポイントの実装
+- [ ] `api/routes/runs.ts`の作成
+- [ ] OpenAPI仕様に基づくスキーマ定義
+- [ ] mas.sh startへの委譲処理
+- [ ] セッションID生成と返却
+- [ ] 設定ファイルの一時保存処理
 
-## Phase 2: Core Modules (Week 2-3)
+### 5. /statusエンドポイントの実装
+- [ ] `api/routes/status.ts`の作成
+- [ ] tmuxセッション状態の取得
+- [ ] エージェント状態の収集
+- [ ] レスポンス形式の定義
 
-### 5. Type System & Validation
-- [ ] OpenAPI仕様からTypeScript型の生成
-- [ ] Zodスキーマの定義（RunRequest、MessageRequest等）
-- [ ] バリデーションミドルウェアの実装
-- [ ] カスタムエラー型の定義
-- [ ] 型定義のテスト
+## Phase 2: シェルスクリプトモジュール化（3-5日）
 
-### 6. TmuxManager Module
-- [ ] ITmuxManagerインターフェースの定義
-- [ ] TmuxManagerクラスの実装
-- [ ] セッション作成・削除機能
-- [ ] ウィンドウ・ペイン管理機能
-- [ ] Tmux操作のエラーハンドリング
-- [ ] TmuxManagerのテスト作成
+### 6. lib/tmux.shの作成
+- [ ] mas.shからtmux関連関数を抽出
+- [ ] create_session関数の実装
+- [ ] create_window関数の実装
+- [ ] split_panes関数の実装
+- [ ] attach_session関数の実装
 
-### 7. AgentManager Module
-- [ ] IAgentManagerインターフェースの定義
-- [ ] AgentManagerクラスの実装
-- [ ] エージェントの起動・停止機能
-- [ ] エージェント状態管理
-- [ ] モデル（opus/sonnet）の割り当てロジック
-- [ ] AgentManagerのテスト作成
+### 7. lib/agent.shの作成
+- [ ] エージェント初期化関数の抽出
+- [ ] init_agent関数の実装
+- [ ] start_agent関数の実装
+- [ ] stop_agent関数の実装
+- [ ] get_agent_model関数の実装（role別モデル割り当て）
 
-### 8. MessageRouter Module
-- [ ] IMessageRouterインターフェースの定義
-- [ ] MessageRouterクラスの実装
-- [ ] ターゲット展開ロジック（individual/unit/group/all）
-- [ ] メッセージ配信の並列処理
-- [ ] 配信確認メカニズム
-- [ ] MessageRouterのテスト作成
+### 8. lib/message.shの作成
+- [ ] send_message.shのコア機能を抽出
+- [ ] route_message関数の実装
+- [ ] expand_target関数の実装（グループ展開）
+- [ ] get_window_and_pane関数の移植
+- [ ] broadcast_message関数の実装
 
-### 9. SessionStore Module
-- [ ] ISessionStoreインターフェースの定義
-- [ ] SessionStore実装（初期はメモリストア）
-- [ ] セッションの作成・取得・更新・削除
-- [ ] セッション状態の永続化
-- [ ] SessionStoreのテスト作成
+### 9. lib/session.shの作成
+- [ ] セッション管理機能の抽出
+- [ ] generate_session_name関数の実装
+- [ ] save_session_info関数の実装
+- [ ] get_session_status関数の実装
+- [ ] cleanup_session関数の実装
 
-## Phase 3: API Implementation (Week 4-5)
+### 10. mas.shのリファクタリング
+- [ ] モジュールのsource処理追加
+- [ ] 重複コードの削除
+- [ ] 各コマンド関数のモジュール呼び出しへの変更
+- [ ] --configオプションのサポート追加
+- [ ] 後方互換性の確認
 
-### 10. /runs Endpoint Implementation
-- [ ] RunServiceクラスの実装
-- [ ] /runsエンドポイントのハンドラー
-- [ ] エージェント構成のバリデーション
-- [ ] UUID生成とセッション管理
-- [ ] 非同期エージェント起動
-- [ ] エンドポイントのテスト作成
+## Phase 3: 統合とテスト（2-3日）
 
-### 11. /status Endpoint (New)
-- [ ] StatusServiceクラスの実装
-- [ ] /statusエンドポイントの実装
-- [ ] セッション状態の取得
-- [ ] エージェント状態の集約
-- [ ] システムメトリクスの収集
-- [ ] エンドポイントのテスト作成
+### 11. APIサーバーの起動スクリプト
+- [ ] start_api.shの作成
+- [ ] systemdサービスファイルの更新
+- [ ] 環境変数の設定（MAS_API_PORT等）
+- [ ] ログ出力の設定
 
-### 12. DI Container Setup
-- [ ] Inversifyの設定
-- [ ] サービスのバインディング定義
-- [ ] スコープ管理（Singleton/Request）
-- [ ] テスト用のモックコンテナー設定
+### 12. APIテストの作成
+- [ ] `api/tests/`ディレクトリの作成
+- [ ] /messageエンドポイントのテスト
+- [ ] /runsエンドポイントのテスト
+- [ ] /statusエンドポイントのテスト
+- [ ] エラーケースのテスト
 
-### 13. Configuration Management
-- [ ] Config型定義とスキーマ
-- [ ] 環境変数の読み込み
-- [ ] 設定ファイルのサポート
-- [ ] デフォルト値の定義
-- [ ] 設定のバリデーション
+### 13. シェルスクリプトテストの作成
+- [ ] `tests/`配下にモジュールテストを追加
+- [ ] tmux.shのテスト
+- [ ] agent.shのテスト
+- [ ] message.shのテスト
+- [ ] session.shのテスト
 
-## Phase 4: Progressive Enhancement (Week 6)
-
-### 14. WebSocket Support
-- [ ] WebSocketハンドラーの実装
-- [ ] セッション購読メカニズム
-- [ ] リアルタイムメッセージ配信
-- [ ] 接続管理とハートビート
-- [ ] WebSocketのテスト作成
-
-### 15. Event System
-- [ ] EventStoreの実装
-- [ ] イベント型の定義
-- [ ] イベントの永続化
-- [ ] イベント再生機能
-- [ ] イベントシステムのテスト
-
-### 16. Monitoring & Metrics
-- [ ] Prometheusメトリクスの設定
-- [ ] カスタムメトリクスの定義
-- [ ] /metricsエンドポイント
-- [ ] パフォーマンスモニタリング
-- [ ] アラート設定
-
-### 17. Structured Logging
-- [ ] Pinoロガーの設定
-- [ ] ログレベル管理
-- [ ] トレースID実装
-- [ ] ログローテーション設定
-- [ ] ログ集約の準備
-
-## Phase 5: Testing & Quality (Week 7)
-
-### 18. Unit Test Suite
-- [ ] 各モジュールの単体テスト（カバレッジ80%以上）
-- [ ] モックとスタブの作成
-- [ ] エッジケースのテスト
-- [ ] パフォーマンステスト
-- [ ] テストレポートの生成
-
-### 19. Integration Tests
-- [ ] APIエンドポイントの統合テスト
-- [ ] モジュール間の連携テスト
-- [ ] データフローのテスト
+### 14. 統合テストの実施
+- [ ] API経由でのセッション作成テスト
+- [ ] メッセージ送信の動作確認
+- [ ] 既存CLIコマンドの互換性確認
 - [ ] エラーシナリオのテスト
-- [ ] 統合テストのCI設定
 
-### 20. E2E Tests
-- [ ] Playwrightのセットアップ
-- [ ] 完全なワークフローテスト
-- [ ] マルチエージェントシナリオ
-- [ ] 負荷テスト
-- [ ] E2EテストのCI設定
+### 15. ドキュメントの更新
+- [ ] README.mdのAPI説明追加
+- [ ] APIエンドポイントのドキュメント
+- [ ] モジュール構造の説明
+- [ ] 移行ガイドの作成
 
-### 21. Performance Optimization
-- [ ] ベンチマークの実施
-- [ ] ボトルネックの特定
-- [ ] キャッシング戦略の実装
-- [ ] 並列処理の最適化
-- [ ] メモリ使用量の最適化
+## 検証項目
 
-## Phase 6: Migration & Deployment (Week 8)
+### 機能検証
+- [ ] 全てのAPIエンドポイントが正常に動作する
+- [ ] 既存のCLIコマンドが変わらず動作する
+- [ ] tmuxセッションが正しく作成される
+- [ ] エージェントへのメッセージが正しく配信される
 
-### 22. Gradual Migration
-- [ ] フィーチャーフラグの実装
-- [ ] 新旧システムの並行稼働設定
-- [ ] 段階的切り替え計画
-- [ ] ロールバック手順の準備
-- [ ] 移行スクリプトの作成
+### 性能検証
+- [ ] APIレスポンス時間が100ms以内
+- [ ] 並行リクエストの処理が可能
+- [ ] メモリ使用量が適切
 
-### 23. Documentation
-- [ ] APIドキュメントの更新
-- [ ] アーキテクチャドキュメント
-- [ ] 運用マニュアル
-- [ ] 移行ガイド
-- [ ] トラブルシューティングガイド
+### 互換性検証
+- [ ] 既存のスクリプトとの互換性
+- [ ] 既存の設定ファイルとの互換性
+- [ ] 既存のテストが全て通る
 
-### 24. Deployment Setup
-- [ ] Dockerイメージの作成
-- [ ] docker-composeの設定
-- [ ] systemdサービスファイル
-- [ ] CI/CDパイプライン
-- [ ] 環境別デプロイ設定
+## リスク管理
 
-### 25. Production Readiness
-- [ ] セキュリティ監査
-- [ ] パフォーマンスプロファイリング
-- [ ] ロードテスト
-- [ ] 災害復旧計画
-- [ ] 本番環境へのデプロイ
+### 識別されたリスク
+1. **シェルスクリプトのモジュール化による不具合**
+   - 緩和策: 段階的な移行と十分なテスト
 
-## Validation & Acceptance
+2. **APIサーバーの安定性**
+   - 緩和策: エラーハンドリングの徹底とログ監視
 
-### Success Metrics
-- [ ] 全てのOpenAPIエンドポイントが実装されている
-- [ ] テストカバレッジが80%以上
-- [ ] レスポンスタイムが100ms以内
-- [ ] エラー率が1%未満
-- [ ] 既存機能との100%互換性
+3. **パフォーマンスの低下**
+   - 緩和策: プロファイリングと最適化
 
-### Quality Gates
-- [ ] コードレビュー完了
-- [ ] セキュリティレビュー完了
-- [ ] パフォーマンステスト合格
-- [ ] ドキュメント完成
-- [ ] ステークホルダー承認
+## 完了条件
 
-## Dependencies & Blockers
-
-### Technical Dependencies
-- Bun v1.0以上のインストール
-- Node.js v18以上（互換性テスト用）
-- tmux v3.0以上
-- Claude CLIの利用可能性
-
-### Organizational Dependencies
-- API仕様のレビューと承認
-- テスト環境の準備
-- 本番環境へのアクセス権限
-- チームメンバーのTypeScript研修
-
-## Risk Mitigation
-
-### High Priority Risks
-1. **既存機能の破壊**: 包括的なE2Eテストで検証
-2. **パフォーマンス低下**: 継続的なベンチマーク実施
-3. **移行失敗**: 段階的移行とロールバック計画
-
-### Medium Priority Risks
-1. **学習コスト**: ドキュメントとペアプログラミング
-2. **依存関係の問題**: 定期的な依存関係更新
-3. **スケープクリープ**: 厳密なスコープ管理
-
-## Notes
-
-- 各タスクは1-2日で完了可能なサイズに分割
-- 並列実行可能なタスクは同じフェーズ内に配置
-- 各フェーズ終了時にレビューとフィードバック収集
-- 問題が発生した場合は早期にエスカレーション
+- 全てのチェック項目が完了している
+- テストカバレッジが既存レベル以上
+- ドキュメントが更新されている
+- レビューが完了している

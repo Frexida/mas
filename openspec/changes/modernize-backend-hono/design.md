@@ -1,575 +1,403 @@
-# Design: MASバックエンドのHono移行アーキテクチャ
+# Design: HonoベースAPIサーバーとシェルスクリプトモジュール化
 
 ## Architecture Overview
 
-```mermaid
-graph TB
-    subgraph "Client Layer"
-        WebUI[Web UI]
-        CLI[CLI Tools]
-        API[External APIs]
-    end
-
-    subgraph "API Layer (Hono)"
-        Router[Hono Router]
-        MW[Middleware Stack]
-        Handlers[Request Handlers]
-        Validator[Schema Validator]
-    end
-
-    subgraph "Core Domain"
-        TM[TmuxManager]
-        AM[AgentManager]
-        MR[MessageRouter]
-        SS[SessionStore]
-    end
-
-    subgraph "Adapters"
-        SA[ShellAdapter]
-        CA[ClaudeAdapter]
-        FS[FileSystem]
-    end
-
-    subgraph "Infrastructure"
-        Tmux[tmux sessions]
-        Shell[Shell Scripts]
-        Claude[clauded processes]
-    end
-
-    WebUI --> Router
-    CLI --> Router
-    API --> Router
-
-    Router --> MW
-    MW --> Handlers
-    Handlers --> Validator
-
-    Handlers --> TM
-    Handlers --> AM
-    Handlers --> MR
-    Handlers --> SS
-
-    TM --> SA
-    AM --> CA
-    MR --> SA
-    SS --> FS
-
-    SA --> Shell
-    SA --> Tmux
-    CA --> Claude
+```
+┌──────────────────────────────────────────────────┐
+│                  Client Layer                      │
+│      (Web UI, CLI Tools, External APIs)           │
+└──────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌──────────────────────────────────────────────────┐
+│           API Layer (TypeScript/Hono)              │
+│  ┌────────────────────────────────────────────┐  │
+│  │  Hono Server (api/server.ts)               │  │
+│  │  - CORS, Validation, Error Handling        │  │
+│  │  - /message, /runs, /status endpoints      │  │
+│  └────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌──────────────────────────────────────────────────┐
+│         Shell Script Modules (lib/*.sh)           │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────┐    │
+│  │ tmux.sh  │ │ agent.sh │ │ message.sh   │    │
+│  │          │ │          │ │              │    │
+│  │ - create │ │ - init   │ │ - route      │    │
+│  │ - attach │ │ - start  │ │ - send       │    │
+│  │ - split  │ │ - stop   │ │ - broadcast  │    │
+│  └──────────┘ └──────────┘ └──────────────┘    │
+│  ┌──────────┐ ┌──────────────────────────┐     │
+│  │session.sh│ │     project.sh (既存)     │     │
+│  └──────────┘ └──────────────────────────┘     │
+└──────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌──────────────────────────────────────────────────┐
+│              Infrastructure Layer                  │
+│    (tmux sessions, clauded processes, files)      │
+└──────────────────────────────────────────────────┘
 ```
 
 ## Key Design Decisions
 
-### 1. Layered Architecture
+### 1. 最小限のTypeScript化
 
-**Decision**: 明確なレイヤー分離を採用
+**Decision**: API層のみTypeScript化し、コア処理はシェルスクリプトを維持
 
+**Rationale**:
+- tmux操作はシェルスクリプトが最適
+- CLIツールとしての柔軟性を維持
+- 既存の実績あるロジックを活用
+- 学習コストの最小化
+
+**Implementation**:
 ```typescript
-// API Layer - プレゼンテーション層
-app.post('/api/runs', validateRequest, async (c) => {
-  const body = await c.req.json<RunRequest>();
-  const session = await runService.create(body);
-  return c.json(session);
+// api/routes/runs.ts
+import { Hono } from 'hono';
+import { z } from 'zod';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
+
+const RunRequestSchema = z.object({
+  agents: z.object({
+    metaManager: z.object({
+      id: z.string(),
+      prompt: z.string()
+    }).optional(),
+    units: z.array(z.object({
+      unitId: z.number(),
+      manager: z.object({
+        id: z.string(),
+        prompt: z.string()
+      }),
+      workers: z.array(z.object({
+        id: z.string(),
+        prompt: z.string()
+      }))
+    }))
+  })
 });
 
-// Service Layer - ビジネスロジック
-class RunService {
-  async create(request: RunRequest): Promise<Session> {
-    const session = await this.sessionStore.create();
-    await this.tmuxManager.createSession(session.id);
-    await this.agentManager.deployAgents(session, request.agents);
-    return session;
-  }
-}
+const app = new Hono();
 
-// Domain Layer - コアエンティティ
-class Agent {
-  constructor(
-    readonly id: string,
-    readonly role: AgentRole,
-    readonly model: ModelType,
-    readonly prompt: string
-  ) {}
-}
+app.post('/', async (c) => {
+  const body = await c.req.json();
+  const validated = RunRequestSchema.parse(body);
 
-// Infrastructure Layer - 外部システム連携
-class TmuxAdapter implements ITmuxManager {
-  async createSession(name: string): Promise<void> {
-    await this.shell.execute(`tmux new-session -d -s ${name}`);
-  }
-}
-```
+  // シェルスクリプトに委譲
+  const configPath = `/tmp/mas-config-${Date.now()}.json`;
+  await fs.writeFile(configPath, JSON.stringify(validated));
 
-**Rationale**:
-- 関心事の明確な分離
-- テスタビリティの向上
-- 依存性の逆転による柔軟性
+  const { stdout } = await execAsync(`./mas.sh start --config ${configPath}`);
 
-### 2. Adapter Pattern for Legacy Integration
-
-**Decision**: 既存シェルスクリプトをアダプター経由で呼び出し
-
-```typescript
-interface IShellAdapter {
-  execute(command: string, options?: ExecOptions): Promise<ShellResult>;
-  stream(command: string): AsyncIterable<string>;
-}
-
-class ShellAdapter implements IShellAdapter {
-  async execute(command: string, options?: ExecOptions): Promise<ShellResult> {
-    // 初期実装: child_processでシェルスクリプト実行
-    const { stdout, stderr, exitCode } = await exec(command, options);
-
-    // 将来: ネイティブTypeScript実装に段階的に置き換え
-    // if (command.startsWith('mas send')) {
-    //   return this.nativeSend(parseArgs(command));
-    // }
-
-    return { stdout, stderr, exitCode };
-  }
-}
-
-// 使用例
-class MessageRouter {
-  constructor(private shell: IShellAdapter) {}
-
-  async send(target: string, message: string): Promise<void> {
-    // Phase 1: 既存のsend_message.sh利用
-    await this.shell.execute(`./send_message.sh -t ${target} -m "${message}"`);
-
-    // Phase 2: ネイティブ実装
-    // const targets = this.expandTarget(target);
-    // await Promise.all(targets.map(t => this.sendToAgent(t, message)));
-  }
-}
-```
-
-**Rationale**:
-- 既存資産の活用
-- リスクを最小化した段階的移行
-- インターフェースによる実装の隠蔽
-
-### 3. Event-Driven State Management
-
-**Decision**: イベントソーシングによる状態管理
-
-```typescript
-// イベント定義
-type SystemEvent =
-  | { type: 'SESSION_CREATED'; sessionId: string; timestamp: Date }
-  | { type: 'AGENT_STARTED'; agentId: string; sessionId: string }
-  | { type: 'MESSAGE_SENT'; from: string; to: string; content: string }
-  | { type: 'AGENT_STOPPED'; agentId: string; reason: string };
-
-// イベントストア
-class EventStore {
-  private events: SystemEvent[] = [];
-  private subscribers: Set<(event: SystemEvent) => void> = new Set();
-
-  append(event: SystemEvent): void {
-    this.events.push(event);
-    this.persist(event);
-    this.notify(event);
-  }
-
-  replay(from?: Date): SystemEvent[] {
-    return from
-      ? this.events.filter(e => e.timestamp >= from)
-      : this.events;
-  }
-}
-
-// 状態の再構築
-class SessionStore {
-  constructor(private eventStore: EventStore) {}
-
-  async rebuild(): Promise<Map<string, Session>> {
-    const sessions = new Map<string, Session>();
-    const events = this.eventStore.replay();
-
-    for (const event of events) {
-      switch (event.type) {
-        case 'SESSION_CREATED':
-          sessions.set(event.sessionId, new Session(event.sessionId));
-          break;
-        case 'AGENT_STARTED':
-          sessions.get(event.sessionId)?.addAgent(event.agentId);
-          break;
-        // ...
-      }
-    }
-
-    return sessions;
-  }
-}
-```
-
-**Rationale**:
-- 完全な監査ログ
-- 状態の再現性
-- デバッグとトラブルシューティングの容易性
-
-### 4. Dependency Injection Container
-
-**Decision**: DIコンテナによる依存性管理
-
-```typescript
-// DIコンテナの設定
-import { Container } from 'inversify';
-
-const container = new Container();
-
-// インターフェースとシンボル
-const TYPES = {
-  ITmuxManager: Symbol.for('ITmuxManager'),
-  IAgentManager: Symbol.for('IAgentManager'),
-  IMessageRouter: Symbol.for('IMessageRouter'),
-  ISessionStore: Symbol.for('ISessionStore'),
-  IShellAdapter: Symbol.for('IShellAdapter'),
-};
-
-// バインディング
-container.bind(TYPES.ITmuxManager).to(TmuxManager).inSingletonScope();
-container.bind(TYPES.IAgentManager).to(AgentManager).inSingletonScope();
-container.bind(TYPES.IMessageRouter).to(MessageRouter).inSingletonScope();
-container.bind(TYPES.ISessionStore).to(SessionStore).inSingletonScope();
-container.bind(TYPES.IShellAdapter).to(ShellAdapter).inSingletonScope();
-
-// 使用
-class RunService {
-  constructor(
-    @inject(TYPES.ITmuxManager) private tmux: ITmuxManager,
-    @inject(TYPES.IAgentManager) private agents: IAgentManager,
-    @inject(TYPES.ISessionStore) private store: ISessionStore,
-  ) {}
-}
-```
-
-**Rationale**:
-- 疎結合な設計
-- テスト時のモック注入が容易
-- 設定の一元管理
-
-### 5. Streaming & WebSocket Support
-
-**Decision**: リアルタイム通信のためのWebSocketサポート
-
-```typescript
-// WebSocketハンドラー
-app.get('/ws/session/:id', upgradeWebSocket((c) => {
-  const sessionId = c.req.param('id');
-
-  return {
-    onOpen(event, ws) {
-      // セッション購読
-      subscribeToSession(sessionId, (update) => {
-        ws.send(JSON.stringify(update));
-      });
-    },
-
-    onMessage(event, ws) {
-      const data = JSON.parse(event.data);
-      if (data.type === 'SEND_MESSAGE') {
-        messageRouter.send(data.target, data.message);
-      }
-    },
-
-    onClose() {
-      unsubscribeFromSession(sessionId);
-    },
-  };
-}));
-
-// Server-Sent Events for read-only streaming
-app.get('/events/session/:id', async (c) => {
-  const sessionId = c.req.param('id');
-
-  return streamSSE(c, async (stream) => {
-    const subscription = subscribeToSession(sessionId, (update) => {
-      stream.writeSSE({
-        data: JSON.stringify(update),
-        event: update.type,
-        id: String(Date.now()),
-      });
-    });
-
-    // Keep alive
-    const keepAlive = setInterval(() => {
-      stream.writeSSE({ event: 'ping' });
-    }, 30000);
-
-    stream.onAbort(() => {
-      clearInterval(keepAlive);
-      subscription.unsubscribe();
-    });
+  return c.json({
+    sessionId: extractSessionId(stdout),
+    status: 'started'
   });
 });
 ```
 
-**Rationale**:
-- リアルタイムなエージェント状態更新
-- 双方向通信による対話的操作
-- プログレッシブエンハンスメント（SSE → WebSocket）
+### 2. シェルスクリプトのモジュール分割
 
-### 6. Configuration Management
+**Decision**: 機能ごとに独立したシェルスクリプトモジュールに分割
 
-**Decision**: 環境別設定と実行時設定の分離
+**Structure**:
+```bash
+# lib/tmux.sh - tmux操作専用モジュール
+#!/bin/bash
 
-```typescript
-// 設定スキーマ
-const ConfigSchema = z.object({
-  server: z.object({
-    port: z.number().default(8765),
-    host: z.string().default('0.0.0.0'),
-    cors: z.object({
-      origin: z.union([z.string(), z.array(z.string())]),
-      credentials: z.boolean().default(true),
-    }),
-  }),
-  tmux: z.object({
-    sessionPrefix: z.string().default('mas-'),
-    defaultShell: z.string().default('/bin/bash'),
-  }),
-  agents: z.object({
-    defaultModel: z.enum(['opus', 'sonnet', 'haiku']).default('sonnet'),
-    timeout: z.number().default(300000), // 5 minutes
-    retryAttempts: z.number().default(3),
-  }),
-  storage: z.object({
-    type: z.enum(['file', 'sqlite', 'postgres']).default('file'),
-    path: z.string().default('./data'),
-  }),
-});
+TMUX_SESSION_PREFIX="${TMUX_SESSION_PREFIX:-mas-}"
 
-// 設定ローダー
-class ConfigLoader {
-  static load(): Config {
-    const config = {
-      // デフォルト値
-      ...defaultConfig,
+create_session() {
+    local session_name="$1"
+    tmux new-session -d -s "$session_name" -n meta
+}
 
-      // 環境変数
-      ...this.loadFromEnv(),
+create_window() {
+    local session_name="$1"
+    local window_name="$2"
+    local window_index="$3"
+    tmux new-window -t "$session_name:$window_index" -n "$window_name"
+}
 
-      // 設定ファイル
-      ...this.loadFromFile(process.env.CONFIG_FILE || 'config.json'),
+split_panes() {
+    local session_name="$1"
+    local window_index="$2"
 
-      // コマンドライン引数
-      ...this.loadFromArgs(),
-    };
+    # 4ペインレイアウトの作成
+    tmux split-window -t "$session_name:$window_index" -h
+    tmux split-window -t "$session_name:$window_index.0" -v
+    tmux split-window -t "$session_name:$window_index.1" -v
+    tmux select-layout -t "$session_name:$window_index" tiled
+}
 
-    return ConfigSchema.parse(config);
-  }
+attach_session() {
+    local session_name="$1"
+    tmux attach-session -t "$session_name"
 }
 ```
 
-**Rationale**:
-- 12-Factor Appの原則に従う
-- 環境による設定の切り替え
-- 型安全な設定管理
+```bash
+# lib/agent.sh - エージェント管理モジュール
+#!/bin/bash
 
-## Technology Stack Details
+source "$(dirname "$0")/lib/tmux.sh"
 
-### Core Framework: Hono
+init_agent() {
+    local unit_dir="$1"
+    local unit_num="$2"
+    local model="$3"
+    local prompt="$4"
 
-**選定理由**:
-1. **パフォーマンス**: Expressの10倍以上高速
-2. **型安全性**: TypeScript First設計
-3. **Web標準準拠**: Fetch API、Web Streams対応
-4. **軽量**: 依存関係が少ない
-5. **エッジ対応**: Cloudflare Workers、Deno Deploy対応
+    # エージェントディレクトリの準備
+    mkdir -p "$unit_dir/$unit_num"
+    echo "$prompt" > "$unit_dir/$unit_num/INSTRUCTIONS.md"
+}
 
-### Runtime: Bun
+start_agent() {
+    local session_name="$1"
+    local window="$2"
+    local pane="$3"
+    local unit_dir="$4"
+    local unit_num="$5"
+    local model="$6"
 
-**選定理由**:
-1. **高速起動**: Node.jsの4倍高速
-2. **ネイティブTypeScript**: トランスパイル不要
-3. **組み込みテストランナー**: 追加ツール不要
-4. **SQLite組み込み**: 軽量DB対応
-5. **Node.js互換**: 既存エコシステム活用可能
+    tmux send-keys -t "$session_name:$window.$pane" \
+        "cd $unit_dir/$unit_num && clauded --model $model" C-m
+}
 
-### Validation: Zod
+stop_agent() {
+    local session_name="$1"
+    local window="$2"
+    local pane="$3"
 
-**選定理由**:
-1. **TypeScript統合**: 型の自動推論
-2. **実行時検証**: 型安全性の保証
-3. **エラーメッセージ**: カスタマイズ可能
-4. **変換機能**: データ変換とバリデーション統合
+    tmux send-keys -t "$session_name:$window.$pane" C-c
+}
+```
 
-## Migration Strategy
+### 3. APIサーバーの実装方針
 
-### Phase 1: Foundation (Week 1)
+**Decision**: Honoの軽量性を活かしたシンプルな実装
+
+**Features**:
+- Zodによるスキーマバリデーション
+- 構造化されたエラーハンドリング
+- CORSサポート
+- ログミドルウェア
 
 ```typescript
-// 最小限のHonoサーバー起動
+// api/server.ts
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
+import { HTTPException } from 'hono/http-exception';
+
+import messageRoute from './routes/message';
+import runsRoute from './routes/runs';
+import statusRoute from './routes/status';
+
 const app = new Hono();
 
-// 既存のmessageエンドポイント移植
-app.post('/message', async (c) => {
-  const { target, message } = await c.req.json();
+// Middleware
+app.use('*', cors());
+app.use('*', logger());
 
-  // 既存のsend_message.sh呼び出し
-  const shell = new ShellAdapter();
-  await shell.execute(`./send_message.sh -t ${target} -m "${message}"`);
-
-  return c.json({ status: 'sent' });
+// Error handling
+app.onError((err, c) => {
+  if (err instanceof HTTPException) {
+    return c.json({ error: err.message }, err.status);
+  }
+  console.error(err);
+  return c.json({ error: 'Internal Server Error' }, 500);
 });
 
-// サーバー起動
+// Routes
+app.route('/message', messageRoute);
+app.route('/runs', runsRoute);
+app.route('/status', statusRoute);
+
+// Health check
+app.get('/health', (c) => c.json({ status: 'ok' }));
+
+const port = process.env.MAS_API_PORT || 8765;
+console.log(`Server running on port ${port}`);
+
 export default {
-  port: process.env.PORT || 8765,
+  port,
   fetch: app.fetch,
 };
 ```
 
-### Phase 2: Core Implementation (Week 2-3)
+### 4. 既存スクリプトとの統合
 
-```typescript
-// コアモジュールの実装
-class TmuxManager {
-  async createSession(name: string): Promise<void> {
-    // mas.shのcmd_start()ロジックを移植
-  }
+**Decision**: 既存のmas.shをエントリーポイントとして維持し、内部でモジュールを呼び出す
 
-  async attachToSession(name: string): Promise<void> {
-    // mas.shのcmd_attach()ロジックを移植
-  }
+```bash
+#!/bin/bash
+# mas.sh - リファクタリング版
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# モジュールの読み込み
+source "$SCRIPT_DIR/lib/tmux.sh"
+source "$SCRIPT_DIR/lib/agent.sh"
+source "$SCRIPT_DIR/lib/message.sh"
+source "$SCRIPT_DIR/lib/session.sh"
+source "$SCRIPT_DIR/lib/project.sh"
+
+# コマンドの実装
+cmd_start() {
+    local config_file="${1:-}"
+
+    # セッション作成
+    local session_name=$(generate_session_name)
+    create_session "$session_name"
+
+    # ウィンドウ作成
+    create_windows "$session_name"
+
+    # エージェント起動
+    if [[ -n "$config_file" ]]; then
+        start_agents_from_config "$session_name" "$config_file"
+    else
+        start_default_agents "$session_name"
+    fi
+
+    # HTTPサーバー起動
+    start_api_server "$session_name"
+
+    echo "$session_name"
 }
 
-// /runsエンドポイントの実装
-app.post('/runs', validateRunRequest, async (c) => {
-  const request = await c.req.json<RunRequest>();
-  const service = container.get<RunService>(RunService);
-  const session = await service.create(request);
-  return c.json(session);
-});
+cmd_send() {
+    local target="$1"
+    local message="$2"
+
+    # message.shのルーティング関数を呼び出し
+    route_message "$target" "$message"
+}
+
+# メイン処理
+main() {
+    local cmd="${1:-}"
+    shift
+
+    case "$cmd" in
+        start)  cmd_start "$@" ;;
+        send)   cmd_send "$@" ;;
+        stop)   cmd_stop "$@" ;;
+        status) cmd_status "$@" ;;
+        *)      cmd_help ;;
+    esac
+}
+
+main "$@"
 ```
 
-### Phase 3: Progressive Enhancement (Week 4-6)
+## Technology Choices
 
-- WebSocketサポート追加
-- メトリクス収集
-- ヘルスチェック
-- 管理用エンドポイント
+### APIサーバー技術スタック
 
-### Phase 4: Complete Migration (Week 7-8)
+- **Hono**: 軽量・高速なWebフレームワーク
+- **TypeScript**: API層の型安全性
+- **Zod**: ランタイムバリデーション
+- **Bun/Node.js**: JavaScript実行環境
 
-- レガシーコード除去
-- パフォーマンスチューニング
-- セキュリティ強化
-- プロダクション展開
+### シェルスクリプト環境
 
-## Testing Strategy
+- **Bash 4.0+**: 標準的なシェル
+- **tmux**: セッション管理
+- **jq**: JSON処理（オプション）
 
-### Unit Tests
+## Migration Strategy
+
+### Phase 1: APIサーバー構築（3-5日）
+
+1. Honoプロジェクトのセットアップ
+2. 既存の`/message`エンドポイント移植
+3. `/runs`エンドポイントの新規実装
+4. バリデーションとエラーハンドリング
+
+### Phase 2: シェルスクリプトモジュール化（3-5日）
+
+1. `lib/tmux.sh`の作成（tmux操作の分離）
+2. `lib/agent.sh`の作成（エージェント管理）
+3. `lib/message.sh`の作成（メッセージルーティング）
+4. `mas.sh`のリファクタリング
+
+### Phase 3: 統合テスト（2-3日）
+
+1. API経由でのエージェント起動テスト
+2. メッセージ送信の動作確認
+3. 既存機能の互換性確認
+4. ドキュメント更新
+
+## Testing Approach
+
+### APIテスト
 
 ```typescript
-describe('TmuxManager', () => {
-  let tmuxManager: TmuxManager;
-  let shellMock: MockShellAdapter;
+// api/tests/message.test.ts
+import { describe, test, expect } from 'bun:test';
+import app from '../server';
 
-  beforeEach(() => {
-    shellMock = new MockShellAdapter();
-    tmuxManager = new TmuxManager(shellMock);
-  });
-
-  test('should create tmux session with correct name', async () => {
-    await tmuxManager.createSession('test-session');
-
-    expect(shellMock.executedCommands).toContain(
-      'tmux new-session -d -s test-session'
-    );
-  });
-});
-```
-
-### Integration Tests
-
-```typescript
-describe('API Integration', () => {
-  test('POST /runs creates session and starts agents', async () => {
-    const response = await app.request('/runs', {
+describe('POST /message', () => {
+  test('sends message to agent', async () => {
+    const response = await app.request('/message', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        agents: {
-          metaManager: { id: '00', prompt: 'Test' },
-          units: [/* ... */],
-        },
-      }),
+        target: '00',
+        message: 'Test message'
+      })
     });
 
-    expect(response.status).toBe(201);
-    const session = await response.json();
-    expect(session.sessionId).toMatch(UUID_REGEX);
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.status).toBe('sent');
   });
 });
 ```
 
-### E2E Tests
+### シェルスクリプトテスト
 
-```typescript
-test('Full workflow: create session, send message, verify delivery', async () => {
-  // 1. セッション作成
-  const session = await createSession(testConfig);
+```bash
+#!/bin/bash
+# tests/test_tmux.sh
 
-  // 2. WebSocket接続
-  const ws = await connectWebSocket(session.id);
+source ../lib/tmux.sh
 
-  // 3. メッセージ送信
-  await sendMessage(session.id, '00', 'Test message');
+test_create_session() {
+    local test_session="test-mas-$$"
 
-  // 4. 配信確認
-  const event = await waitForEvent(ws, 'MESSAGE_DELIVERED');
-  expect(event.data.content).toBe('Test message');
-});
+    create_session "$test_session"
+
+    if tmux has-session -t "$test_session" 2>/dev/null; then
+        echo "✓ Session created successfully"
+        tmux kill-session -t "$test_session"
+    else
+        echo "✗ Failed to create session"
+        return 1
+    fi
+}
+
+test_create_session
 ```
 
 ## Security Considerations
 
-1. **Input Validation**: 全入力をZodでバリデーション
-2. **Command Injection対策**: シェルコマンドのサニタイゼーション
-3. **Rate Limiting**: APIエンドポイントのレート制限
-4. **Authentication**: JWT/APIキーによる認証（将来）
-5. **Audit Logging**: 全操作の監査ログ
+1. **入力検証**: Zodによる厳格なスキーマ検証
+2. **コマンドインジェクション対策**: シェルコマンドの適切なエスケープ
+3. **CORS設定**: 必要なオリジンのみ許可
+4. **エラー情報**: 本番環境では詳細なエラー情報を隠蔽
 
-## Performance Optimization
+## Future Considerations
 
-1. **Connection Pooling**: tmuxセッション接続の再利用
-2. **Caching**: セッション状態のメモリキャッシュ
-3. **Async Processing**: メッセージ送信の非同期処理
-4. **Batch Operations**: 複数エージェントへの並列操作
-
-## Monitoring & Observability
-
-```typescript
-// Prometheusメトリクス
-app.use(prometheus({
-  prefix: 'mas_',
-  collectDefaultMetrics: true,
-}));
-
-// 構造化ロギング
-const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
-  transport: {
-    target: 'pino-pretty',
-  },
-});
-
-// トレーシング
-app.use(async (c, next) => {
-  const traceId = crypto.randomUUID();
-  c.set('traceId', traceId);
-  logger.info({ traceId, method: c.req.method, path: c.req.path });
-  await next();
-});
-```
-
-## Future Enhancements
-
-1. **Plugin System**: カスタムエージェントタイプのサポート
-2. **Distributed Mode**: 複数ホストでのエージェント実行
-3. **AI-Powered Routing**: 機械学習によるメッセージルーティング最適化
-4. **Visual Debugger**: Web UIでのセッションデバッグツール
-5. **Workflow Engine**: 複雑なエージェント間ワークフローの定義と実行
+1. **WebSocketサポート**: リアルタイムな状態更新（必要に応じて）
+2. **認証機能**: APIキーやJWT（必要に応じて）
+3. **メトリクス収集**: Prometheus形式（必要に応じて）
+4. **ログ集約**: 構造化ログの外部送信（必要に応じて）
