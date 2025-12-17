@@ -1,8 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import type { AgentConfiguration, ApiRequest, ApiResponse } from '../types/agent.ts';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tmp.frexida.com';
-const API_ENDPOINT = `${API_BASE_URL}/api/agents/configure`;
+import { getApiEndpoint } from './apiConfig';
 
 export const submitConfiguration = async (config: AgentConfiguration): Promise<ApiResponse> => {
   try {
@@ -27,7 +25,7 @@ export const submitConfiguration = async (config: AgentConfiguration): Promise<A
       }))
     };
 
-    const response = await axios.post<ApiResponse>(API_ENDPOINT, apiRequest, {
+    const response = await axios.post<ApiResponse>(getApiEndpoint(), apiRequest, {
       headers: {
         'Content-Type': 'application/json',
       },

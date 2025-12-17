@@ -29,6 +29,9 @@ export const UnitConfiguration: React.FC<UnitConfigurationProps> = ({
           value={unit.manager.prompt}
           onChange={onManagerChange}
           placeholder="Enter the manager's role and responsibilities..."
+          role="manager"
+          unitId={unitNumber}
+          showTemplateSelector={true}
         />
       </div>
 
@@ -43,6 +46,10 @@ export const UnitConfiguration: React.FC<UnitConfigurationProps> = ({
               value={worker.prompt}
               onChange={(prompt) => onWorkerChange(index, prompt)}
               placeholder="Enter the worker's specific tasks..."
+              role="worker"
+              unitId={unitNumber}
+              workerId={index + 1}
+              showTemplateSelector={true}
             />
           ))}
         </div>

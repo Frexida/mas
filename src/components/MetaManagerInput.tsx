@@ -20,6 +20,8 @@ export const MetaManagerInput: React.FC<MetaManagerInputProps> = ({ metaManager,
         value={metaManager.prompt}
         onChange={onChange}
         placeholder="Enter the meta manager's coordination prompt..."
+        role="meta-manager"
+        showTemplateSelector={true}
       />
     </div>
   );

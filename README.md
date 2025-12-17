@@ -7,8 +7,10 @@ Multi-Agent System Configuration Interface for tmp.frexida.com
 This web application provides a user-friendly interface to configure and manage multi-agent systems. It allows users to:
 - Configure 1-4 agent units dynamically
 - Assign prompts to meta managers, unit managers, and workers
-- Submit configurations to tmp.frexida.com API
-- View and export generated markdown outputs
+- Use predefined templates for quick agent initialization (Japanese/English)
+- Automatically include MAS help command learning in agent prompts
+- Submit configurations to the MAS API
+- View and manage active sessions
 
 ## Getting Started
 
@@ -66,8 +68,11 @@ The built files will be in the `dist/` directory.
   - **UnitSelector**: Select number of units (1-4)
   - **MetaManagerInput**: Input for meta manager (shown when units >= 2)
   - **UnitConfiguration**: Configuration for each unit
-    - **PromptInput**: Reusable text input component
-- **OutputDisplay**: Display and export markdown results
+    - **PromptInput**: Text input with template support
+    - **TemplateSelector**: Choose and apply role-specific templates
+    - **TemplatePreview**: View template before applying
+- **SessionDisplay**: Show active session details
+- **MessageSender**: Send messages to agents after initialization
 
 ### State Management
 
@@ -75,16 +80,48 @@ Uses React's `useReducer` hook for centralized form state management.
 
 ### API Integration
 
-- **Endpoint**: `https://tmp.frexida.com/api/agents/configure`
-- **Method**: POST
-- **Retry Logic**: Exponential backoff with 3 retries
-- **Timeout**: 30 seconds
+- **Configuration Endpoint**: `/runs`
+  - **Method**: POST
+  - **Retry Logic**: Exponential backoff with 3 retries
+  - **Timeout**: 30 seconds
+- **Message Endpoint**: `/message`
+  - **Method**: POST
+  - **Timeout**: 10 seconds
 
 ## Agent Hierarchy
 
 - **Meta Manager** (ID: 00): Coordinates multiple units
 - **Unit Managers** (IDs: 10, 20, 30, 40): Manage individual units
 - **Workers** (IDs: 11-13, 21-23, 31-33, 41-43): Execute specific tasks
+
+## Template System
+
+### Features
+- **Role-Specific Templates**: Pre-configured prompts for each agent role
+- **Multi-Language Support**: Available in Japanese and English
+- **Auto Help Integration**: Automatically includes `mas help` command instructions
+- **Customization**: Templates can be edited after application
+- **Persistence**: Custom templates saved in browser localStorage
+
+### Template Content
+
+#### Manager Template (Japanese)
+- Team opinion integration instructions
+- Task prioritization guidance
+- Report handling procedures
+- MAS help command learning
+
+#### Worker Template (Japanese)
+- Task execution instructions
+- Progress reporting guidelines
+- Collaboration protocols
+- MAS help command learning
+
+#### Meta-Manager Template (Japanese)
+- Multi-unit coordination
+- System-wide strategy
+- Resource optimization
+- MAS help command learning
 
 ## Technologies
 
