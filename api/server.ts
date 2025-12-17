@@ -6,6 +6,7 @@ import { HTTPException } from 'hono/http-exception';
 import messageRoute from './routes/message.js';
 import runsRoute from './routes/runs.js';
 import statusRoute from './routes/status.js';
+import sessionsRoute from './routes/sessions.js';
 
 const app = new Hono();
 
@@ -40,14 +41,18 @@ app.on(['GET', 'HEAD'], '/', (c) => {
   // For GET requests, return API info
   return c.json({
     name: 'MAS API Server',
-    version: '1.0.0',
+    version: '2.1.0',
     status: 'running',
     timestamp: new Date().toISOString(),
     endpoints: [
       'GET /health',
       'POST /message',
       'POST /runs',
-      'GET /status'
+      'GET /status',
+      'GET /sessions',
+      'GET /sessions/:sessionId',
+      'POST /sessions/:sessionId/connect',
+      'POST /sessions/:sessionId/stop'
     ]
   });
 });
@@ -64,6 +69,7 @@ app.get('/health', (c) => {
 app.route('/message', messageRoute);
 app.route('/runs', runsRoute);
 app.route('/status', statusRoute);
+app.route('/sessions', sessionsRoute);
 
 // Start server
 const port = Number(process.env.MAS_API_PORT || 8765);
