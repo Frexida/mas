@@ -19,6 +19,14 @@ export default defineConfig({
     hmr: {
       host: '192.168.11.7',
       port: 5173
+    },
+    proxy: {
+      '/api': {
+        target: 'https://mas-api.frexida.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        secure: false
+      }
     }
   }
 })

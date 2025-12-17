@@ -9,7 +9,10 @@ import type {
   RunsResponse,
   MessageRequest,
   MessageResponse,
-  ErrorResponse
+  ErrorResponse,
+  SessionListRequest,
+  SessionListResponse,
+  SessionInfo
 } from '../types/masApi';
 import { isErrorResponse } from '../types/masApi';
 import { getApiBaseUrl } from './apiConfig';
@@ -170,4 +173,81 @@ export async function createRunWithRetry(
   }
 
   throw lastError || new Error('Max retries exceeded');
+}
+
+/**
+ * Lists available tmux sessions
+ * GET /sessions
+ */
+export async function listSessions(params?: SessionListRequest): Promise<SessionListResponse> {
+  try {
+    const baseUrl = getApiBaseUrl();
+    const endpoint = `${baseUrl}/sessions`;
+
+    console.log('Listing sessions:', endpoint, params);
+
+    const response = await axios.get<SessionListResponse>(endpoint, {
+      params,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000, // 10 seconds
+    });
+
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+    throw error; // This won't be reached due to handleApiError throwing
+  }
+}
+
+/**
+ * Gets a specific session by ID
+ * GET /sessions/:sessionId
+ */
+export async function getSession(sessionId: string): Promise<SessionInfo> {
+  try {
+    const baseUrl = getApiBaseUrl();
+    const endpoint = `${baseUrl}/sessions/${sessionId}`;
+
+    console.log('Getting session:', endpoint);
+
+    const response = await axios.get<SessionInfo>(endpoint, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000, // 10 seconds
+    });
+
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+    throw error; // This won't be reached due to handleApiError throwing
+  }
+}
+
+/**
+ * Connects to an existing session
+ * POST /sessions/:sessionId/connect
+ * Returns the same response as creating a new session
+ */
+export async function connectToSession(sessionId: string): Promise<RunsResponse> {
+  try {
+    const baseUrl = getApiBaseUrl();
+    const endpoint = `${baseUrl}/sessions/${sessionId}/connect`;
+
+    console.log('Connecting to session:', endpoint);
+
+    const response = await axios.post<RunsResponse>(endpoint, {}, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000, // 10 seconds
+    });
+
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+    throw error; // This won't be reached due to handleApiError throwing
+  }
 }

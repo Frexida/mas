@@ -51,6 +51,53 @@ export interface RunsResponse {
 }
 
 /**
+ * Session status enumeration
+ */
+export type SessionStatus = 'active' | 'inactive' | 'terminated';
+
+/**
+ * Session information for listing
+ * @property sessionId - UUID of the session
+ * @property tmuxSession - Tmux session identifier
+ * @property workingDir - Working directory path
+ * @property startedAt - ISO 8601 timestamp when session was created
+ * @property status - Current status of the session
+ * @property lastActivity - ISO 8601 timestamp of last activity (optional)
+ * @property agentCount - Number of agents in the session (optional)
+ */
+export interface SessionInfo {
+  sessionId: string;
+  tmuxSession: string;
+  workingDir: string;
+  startedAt: string;
+  status: SessionStatus;
+  lastActivity?: string;
+  agentCount?: number;
+}
+
+/**
+ * Response from GET /sessions endpoint
+ * @property sessions - Array of available sessions
+ * @property count - Total number of sessions
+ */
+export interface SessionListResponse {
+  sessions: SessionInfo[];
+  count: number;
+}
+
+/**
+ * Request parameters for GET /sessions endpoint
+ * @property status - Filter by session status (optional)
+ * @property limit - Maximum number of sessions to return (optional)
+ * @property offset - Number of sessions to skip (optional)
+ */
+export interface SessionListRequest {
+  status?: SessionStatus;
+  limit?: number;
+  offset?: number;
+}
+
+/**
  * Request payload for POST /message endpoint
  * @property target - Target recipient (e.g., "window1", "agent-11", "all")
  * @property message - Message content to send

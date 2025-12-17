@@ -2,13 +2,17 @@ import { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { AgentConfigurator } from './components/AgentConfigurator';
 import { SessionOutputDisplay } from './components/SessionOutputDisplay';
+import { SessionSelector } from './components/SessionSelector';
 import ApiSettings from './components/ApiSettings';
 import type { RunsResponse, ErrorResponse } from './types/masApi';
 import { testApiConnection } from './services/masApi';
 
+type ViewMode = 'create' | 'select' | 'session';
+
 function App() {
   const [response, setResponse] = useState<RunsResponse | ErrorResponse | null>(null);
   const [showOutput, setShowOutput] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('select');
   const [apiStatus, setApiStatus] = useState<{
     checking: boolean;
     connected: boolean;
@@ -41,11 +45,31 @@ function App() {
   const handleSubmitSuccess = (apiResponse: RunsResponse | ErrorResponse) => {
     setResponse(apiResponse);
     setShowOutput(true);
+    setViewMode('session');
+  };
+
+  const handleSessionSelected = (session: RunsResponse) => {
+    setResponse(session);
+    setShowOutput(true);
+    setViewMode('session');
+  };
+
+  const handleCreateNew = () => {
+    setViewMode('create');
+    setShowOutput(false);
+    setResponse(null);
+  };
+
+  const handleBackToSelect = () => {
+    setViewMode('select');
+    setShowOutput(false);
+    setResponse(null);
   };
 
   const handleReset = () => {
     setResponse(null);
     setShowOutput(false);
+    setViewMode('select');
   };
 
   return (
@@ -70,10 +94,23 @@ function App() {
       )}
 
       <main>
-        {!showOutput ? (
-          <AgentConfigurator onSubmitSuccess={handleSubmitSuccess} />
-        ) : (
-          <SessionOutputDisplay response={response} onReset={handleReset} />
+        {viewMode === 'select' && (
+          <SessionSelector
+            onSessionSelected={handleSessionSelected}
+            onCreateNew={handleCreateNew}
+          />
+        )}
+        {viewMode === 'create' && (
+          <AgentConfigurator
+            onSubmitSuccess={handleSubmitSuccess}
+            onBack={handleBackToSelect}
+          />
+        )}
+        {viewMode === 'session' && showOutput && (
+          <SessionOutputDisplay
+            response={response}
+            onReset={handleReset}
+          />
         )}
       </main>
       <ApiSettings />
