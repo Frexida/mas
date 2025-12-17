@@ -1,0 +1,23 @@
+[Unit]
+Description=MAS API HTTP Server
+After=network.target
+
+[Service]
+Type=simple
+User=mtdnot
+WorkingDirectory=/home/mtdnot/dev/anag/mas
+ExecStart=/usr/bin/node /home/mtdnot/dev/anag/mas/http_server.js
+Restart=on-failure
+RestartSec=5
+
+# Environment variables
+Environment="NODE_ENV=production"
+Environment="MAS_HTTP_PORT=8765"
+Environment="MAS_HTTP_HOST=127.0.0.1"
+
+# Logging
+StandardOutput=append:/var/log/mas-api.log
+StandardError=append:/var/log/mas-api-error.log
+
+[Install]
+WantedBy=multi-user.target

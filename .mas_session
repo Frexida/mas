@@ -1,0 +1,6 @@
+SESSION_NAME=mas-tmux
+STARTED_AT="2025-12-18 05:33:18"
+PID=8319
+PROJECT_DIR=/home/mtdnot/dev/anag/mas
+UNIT_DIR=/home/mtdnot/dev/anag/mas/unit
+WORKFLOWS_DIR=/home/mtdnot/dev/anag/mas/workflows

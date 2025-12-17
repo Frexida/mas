@@ -4,9 +4,20 @@ const { spawn } = require('child_process');
 const path = require('path');
 
 const PORT = process.env.MAS_HTTP_PORT || 8765;
+const HOST = process.env.MAS_HTTP_HOST || '0.0.0.0';  // 全てのインターフェースでリッスン
 const SEND_MESSAGE = path.join(__dirname, 'send_message.sh');
 
 http.createServer((req, res) => {
+  // CORSヘッダーを追加（必要に応じて）
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // OPTIONSリクエストへの対応（CORS preflight）
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    return res.end();
+  }
   if (req.method !== 'POST' || req.url !== '/message') {
     res.writeHead(400, {'Content-Type': 'application/json'});
     return res.end(JSON.stringify({error: 'Only POST /message is supported'}));
@@ -29,4 +40,4 @@ http.createServer((req, res) => {
       res.end(JSON.stringify({error: e.message}));
     }
   });
-}).listen(PORT, () => console.log(`HTTP server on port ${PORT}`));
+}).listen(PORT, HOST, () => console.log(`HTTP server listening on ${HOST}:${PORT}`));

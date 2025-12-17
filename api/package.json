@@ -1,0 +1,25 @@
+{
+  "name": "mas-api",
+  "version": "1.0.0",
+  "description": "MAS API Server with Hono",
+  "main": "server.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "node --loader tsx server.ts",
+    "start": "node --loader tsx server.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.7",
+    "hono": "^4.0.0",
+    "tsx": "^4.21.0",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
