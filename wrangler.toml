@@ -1,0 +1,13 @@
+name = "mas-ui"
+compatibility_date = "2025-12-18"
+
+[site]
+bucket = "./dist"
+
+[assets]
+directory = "./dist"
+
+# Environment variables can be set in Cloudflare dashboard
+# or add them here:
+# [vars]
+# VITE_API_BASE_URL = "https://your-api-server.com"
