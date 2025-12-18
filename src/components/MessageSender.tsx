@@ -11,6 +11,7 @@ export const MessageSender: React.FC<MessageSenderProps> = ({ tmuxSession }) => 
   const [target, setTarget] = useState<string>('all');
   const [message, setMessage] = useState<string>('');
   const [execute, setExecute] = useState<boolean>(false);
+  const [openspecProposal, setOpenspecProposal] = useState<boolean>(false);
   const [isSending, setIsSending] = useState<boolean>(false);
   const [result, setResult] = useState<{
     type: 'success' | 'error';
@@ -44,9 +45,12 @@ export const MessageSender: React.FC<MessageSenderProps> = ({ tmuxSession }) => 
     setIsSending(true);
     setResult(null);
 
+    // Prepend /openspec:proposal if the checkbox is checked
+    const finalMessage = openspecProposal ? `/openspec:proposal ${message}` : message;
+
     const request: MessageRequest = {
       target,
-      message,
+      message: finalMessage,
       execute
     };
 
@@ -127,6 +131,19 @@ export const MessageSender: React.FC<MessageSenderProps> = ({ tmuxSession }) => 
           />
           <label htmlFor="execute" className="text-sm text-gray-700">
             Execute as command (sends Enter key after message)
+          </label>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="openspecProposal"
+            checked={openspecProposal}
+            onChange={(e) => setOpenspecProposal(e.target.checked)}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <label htmlFor="openspecProposal" className="text-sm text-gray-700">
+            Send as OpenSpec proposal (prepends /openspec:proposal)
           </label>
         </div>
 
