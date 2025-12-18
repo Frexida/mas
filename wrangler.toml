@@ -1,4 +1,4 @@
-name = "mas-ui"
+name = "mas"
 compatibility_date = "2025-12-18"
 main = "_worker.js"
 
