@@ -41,10 +41,21 @@ SESSION_DIR="$MAS_DATA_DIR/sessions/$SESSION_ID"
 mkdir -p "$SESSION_DIR/unit"
 mkdir -p "$SESSION_DIR/workflows"
 
-# テンプレートからユニットをコピー
-if [ -d "$MAS_ROOT/unit" ]; then
-    cp -r "$MAS_ROOT/unit/"* "$SESSION_DIR/unit/" 2>/dev/null || true
-fi
+# 各エージェントのディレクトリを作成
+for unit_num in 00 10 11 12 13 20 21 22 23 30 31 32 33; do
+    mkdir -p "$SESSION_DIR/unit/$unit_num"
+
+    # openspecディレクトリも作成
+    mkdir -p "$SESSION_DIR/unit/$unit_num/openspec"
+
+    # 基本的なREADMEを作成
+    cat > "$SESSION_DIR/unit/$unit_num/README.md" <<EOF
+# Agent $unit_num Workspace
+
+This is the workspace for agent $unit_num.
+All agent-specific files and outputs will be stored here.
+EOF
+done
 
 # テンプレートからワークフローをコピー
 if [ -d "$MAS_ROOT/workflows" ]; then
@@ -80,26 +91,71 @@ tmux new-window -t "$MAS_SESSION_NAME:3" -n "development" -c "$SESSION_DIR"
 tmux new-window -t "$MAS_SESSION_NAME:4" -n "business" -c "$SESSION_DIR"
 tmux new-window -t "$MAS_SESSION_NAME:5" -n "monitor" -c "$SESSION_DIR"
 
-# エージェント起動（簡易版）
+# エージェント起動
 print_info "Starting agents..."
 
-# Meta Manager (00)
-tmux send-keys -t "$MAS_SESSION_NAME:1.0" "echo 'Meta Manager (00) ready'" C-m
+# エージェントのモデル設定（デフォルト）
+declare -A AGENT_MODELS=(
+    ["00"]="claude-3-5-sonnet-20241022"  # Meta Manager
+    ["10"]="claude-3-5-sonnet-20241022"  # Design Manager
+    ["11"]="claude-3-5-sonnet-20241022"  # UI Designer
+    ["12"]="claude-3-5-sonnet-20241022"  # UX Designer
+    ["13"]="claude-3-5-sonnet-20241022"  # Visual Designer
+    ["20"]="claude-3-5-sonnet-20241022"  # Dev Manager
+    ["21"]="claude-3-5-sonnet-20241022"  # Frontend Dev
+    ["22"]="claude-3-5-sonnet-20241022"  # Backend Dev
+    ["23"]="claude-3-5-sonnet-20241022"  # DevOps
+    ["30"]="claude-3-5-sonnet-20241022"  # Business Manager
+    ["31"]="claude-3-5-sonnet-20241022"  # Accounting
+    ["32"]="claude-3-5-sonnet-20241022"  # Strategy
+    ["33"]="claude-3-5-sonnet-20241022"  # Analytics
+)
 
-# Design Unit
+# エージェント起動関数
+start_agent_in_pane() {
+    local window="$1"
+    local pane="$2"
+    local unit_num="$3"
+    local unit_dir="$SESSION_DIR/unit/$unit_num"
+    local model="${AGENT_MODELS[$unit_num]}"
+
+    # エージェントディレクトリに移動
+    tmux send-keys -t "$MAS_SESSION_NAME:$window.$pane" "cd '$unit_dir'" C-m
+    sleep 0.2
+
+    # claudeコマンドを起動
+    tmux send-keys -t "$MAS_SESSION_NAME:$window.$pane" "claude --model $model" C-m
+}
+
+# Meta Manager (00) - Window 1
+start_agent_in_pane 1 0 "00"
+
+# Design Unit - Window 2
 tmux split-window -t "$MAS_SESSION_NAME:2" -h
 tmux split-window -t "$MAS_SESSION_NAME:2.0" -v
 tmux split-window -t "$MAS_SESSION_NAME:2.2" -v
+start_agent_in_pane 2 0 "10"
+start_agent_in_pane 2 1 "11"
+start_agent_in_pane 2 2 "12"
+start_agent_in_pane 2 3 "13"
 
-# Development Unit
+# Development Unit - Window 3
 tmux split-window -t "$MAS_SESSION_NAME:3" -h
 tmux split-window -t "$MAS_SESSION_NAME:3.0" -v
 tmux split-window -t "$MAS_SESSION_NAME:3.2" -v
+start_agent_in_pane 3 0 "20"
+start_agent_in_pane 3 1 "21"
+start_agent_in_pane 3 2 "22"
+start_agent_in_pane 3 3 "23"
 
-# Business Unit
+# Business Unit - Window 4
 tmux split-window -t "$MAS_SESSION_NAME:4" -h
 tmux split-window -t "$MAS_SESSION_NAME:4.0" -v
 tmux split-window -t "$MAS_SESSION_NAME:4.2" -v
+start_agent_in_pane 4 0 "30"
+start_agent_in_pane 4 1 "31"
+start_agent_in_pane 4 2 "32"
+start_agent_in_pane 4 3 "33"
 
 print_success "Session $MAS_SESSION_NAME created successfully"
 
