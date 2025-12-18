@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "name": "worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers Site",
+  "main": "index.js",
+  "dependencies": {
+    "@cloudflare/kv-asset-handler": "~0.3.0"
+  }
+}

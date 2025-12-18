@@ -29,7 +29,8 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "preview": "vite preview",
-    "preview:host": "vite preview --host 0.0.0.0"
+    "preview:host": "vite preview --host 0.0.0.0",
+    "deploy:cloudflare": "wrangler deploy"
   },
   "dependencies": {
     "axios": "^1.13.2",
