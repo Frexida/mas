@@ -79,6 +79,7 @@ startオプション:
     --config <file>         設定ファイルを指定（JSON形式のエージェント構成）
     --skip-init             Unit初期化をスキップ
     --no-attach             起動後にアタッチしない
+    --dev                   開発モード（API & WebUI も起動）
 
 sendオプション:
     -n, --no-execute        メッセージ送信のみ（Enterを送信しない）
@@ -218,6 +219,7 @@ cmd_start() {
     local config_file=""
     local skip_init=false
     local no_attach=false
+    local dev_mode=false
 
     # オプション解析
     while [[ $# -gt 0 ]]; do
@@ -232,6 +234,11 @@ cmd_start() {
                 ;;
             --no-attach)
                 no_attach=true
+                shift
+                ;;
+            --dev)
+                dev_mode=true
+                no_attach=true  # devモードではデフォルトでアタッチしない
                 shift
                 ;;
             *)
@@ -312,8 +319,62 @@ cmd_start() {
         start_all_agents "$SESSION_NAME" "$unit_dir"
     fi
 
-    # HTTPサーバー起動
-    start_http_server "$SESSION_NAME"
+    # HTTPサーバー起動（旧バージョン - 現在は使わない）
+    # start_http_server "$SESSION_NAME"
+
+    # devモードの場合、APIとWebUIも起動
+    if [ "$dev_mode" = true ]; then
+        # npmインストール版では開発モードは利用不可
+        if [ "$MAS_INSTALL_TYPE" = "npm" ]; then
+            print_warning "開発モード（--dev）はGitリポジトリからのインストールでのみ利用可能です"
+            print_info "WebUIを使用するには:"
+            print_info "  git clone https://github.com/frexida/mas.git"
+            print_info "  cd mas"
+            print_info "  npm install"
+            print_info "  npm start  # または mas start --dev"
+        else
+            print_info "開発モード: API & WebUIを起動中..."
+
+            # APIサーバーを起動
+            if [ -d "$SCRIPT_DIR/api" ]; then
+                print_info "APIサーバーを起動中 (port 8765)..."
+                cd "$SCRIPT_DIR/api"
+                nohup npm start > "$MAS_DATA_DIR/api.log" 2>&1 &
+                local api_pid=$!
+                echo "$api_pid" > "$MAS_DATA_DIR/api.pid"
+                cd - > /dev/null
+            else
+                print_warning "APIディレクトリが見つかりません: $SCRIPT_DIR/api"
+            fi
+
+            # WebUIを起動
+            if [ -d "$SCRIPT_DIR/web" ]; then
+                print_info "WebUIを起動中 (port 5173)..."
+                cd "$SCRIPT_DIR/web"
+                nohup npm run dev > "$MAS_DATA_DIR/web.log" 2>&1 &
+                local web_pid=$!
+                echo "$web_pid" > "$MAS_DATA_DIR/web.pid"
+                cd - > /dev/null
+            else
+                print_warning "Webディレクトリが見つかりません: $SCRIPT_DIR/web"
+            fi
+
+            if [ -d "$SCRIPT_DIR/api" ] && [ -d "$SCRIPT_DIR/web" ]; then
+                # 少し待ってからブラウザを開く
+                sleep 2
+                print_success "開発環境が起動しました:"
+                print_info "  WebUI: http://localhost:5173"
+                print_info "  API:   http://localhost:8765"
+
+                # ブラウザを自動で開く（可能な場合）
+                if command -v xdg-open &> /dev/null; then
+                    xdg-open "http://localhost:5173" &
+                elif command -v open &> /dev/null; then
+                    open "http://localhost:5173" &
+                fi
+            fi
+        fi
+    fi
 
     # セッション情報はcreate_session_metadataで既に保存済み
 
@@ -473,6 +534,25 @@ cmd_stop() {
             print_info "キャンセルされました"
             return 0
         fi
+    fi
+
+    # devモードで起動したプロセスを停止
+    if [ -f "$MAS_DATA_DIR/api.pid" ]; then
+        local api_pid=$(cat "$MAS_DATA_DIR/api.pid")
+        if ps -p "$api_pid" > /dev/null 2>&1; then
+            print_info "APIサーバーを停止中..."
+            kill "$api_pid" 2>/dev/null || true
+        fi
+        rm -f "$MAS_DATA_DIR/api.pid"
+    fi
+
+    if [ -f "$MAS_DATA_DIR/web.pid" ]; then
+        local web_pid=$(cat "$MAS_DATA_DIR/web.pid")
+        if ps -p "$web_pid" > /dev/null 2>&1; then
+            print_info "WebUIを停止中..."
+            kill "$web_pid" 2>/dev/null || true
+        fi
+        rm -f "$MAS_DATA_DIR/web.pid"
     fi
 
     # エージェント停止
