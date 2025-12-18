@@ -10,7 +10,7 @@ interface MessageSenderProps {
 export const MessageSender: React.FC<MessageSenderProps> = ({ tmuxSession }) => {
   const [target, setTarget] = useState<string>('all');
   const [message, setMessage] = useState<string>('');
-  const [execute, setExecute] = useState<boolean>(false);
+  const [execute, setExecute] = useState<boolean>(true);
   const [openspecProposal, setOpenspecProposal] = useState<boolean>(false);
   const [isSending, setIsSending] = useState<boolean>(false);
   const [result, setResult] = useState<{
