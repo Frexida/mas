@@ -1,15 +1,33 @@
 {
-  "name": "mas-ui-app",
-  "private": true,
-  "version": "0.0.0",
+  "name": "mas-ui",
+  "version": "0.1.0",
+  "description": "A modern web interface for configuring and managing Multi-Agent Systems",
+  "author": "MAS-UI Contributors",
+  "license": "MIT",
+  "keywords": [
+    "multi-agent-system",
+    "mas",
+    "agent-configuration",
+    "react",
+    "typescript",
+    "vite",
+    "ui"
+  ],
+  "homepage": "https://github.com/yourusername/mas-ui#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/mas-ui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/mas-ui/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
     "dev:host": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
-    "build:prod": "npm run build && echo 'Build completed successfully!'",
-    "deploy": "npm run build:prod && sudo ./deploy.sh",
     "lint": "eslint .",
+    "type-check": "tsc --noEmit",
     "preview": "vite preview",
     "preview:host": "vite preview --host 0.0.0.0"
   },

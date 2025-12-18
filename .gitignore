@@ -29,3 +29,9 @@ dist-ssr
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Internal tools and documentation (not for OSS)
+.claude/
+openspec/
+AGENTS.md
+CLAUDE.md

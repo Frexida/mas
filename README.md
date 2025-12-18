@@ -1,63 +1,96 @@
-# MAS Web UI
+# MAS-UI
 
-Multi-Agent System Configuration Interface for tmp.frexida.com
+A modern web interface for configuring and managing Multi-Agent Systems (MAS)
 
 ## Overview
 
-This web application provides a user-friendly interface to configure and manage multi-agent systems. It allows users to:
-- Configure 1-4 agent units dynamically
-- Assign prompts to meta managers, unit managers, and workers
-- Use predefined templates for quick agent initialization (Japanese/English)
-- Automatically include MAS help command learning in agent prompts
-- Submit configurations to the MAS API
-- View and manage active sessions
+MAS-UI is a React-based web application that provides an intuitive interface for configuring and managing multi-agent systems. It enables users to orchestrate complex agent hierarchies, assign specific roles and prompts, and monitor agent interactions in real-time.
+
+### Key Features
+- 🤖 **Dynamic Agent Configuration**: Configure 1-4 agent units with flexible hierarchies
+- 📝 **Role-Based Prompting**: Assign specific prompts to meta managers, unit managers, and workers
+- 🎯 **Template System**: Pre-configured templates for rapid agent initialization
+- 🌐 **Multi-Language Support**: Templates available in Japanese and English
+- 📡 **Real-time Session Management**: View and interact with active agent sessions
+- 💬 **Interactive Messaging**: Send messages to agents after initialization
+- 🔄 **Auto-Retry Logic**: Built-in resilience with exponential backoff
+- ⚡ **Modern Tech Stack**: Built with React, TypeScript, and Vite
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ 
-- npm or yarn
+- Node.js 18.0 or higher
+- npm 9.0+ or yarn 1.22+
+- A running MAS API backend instance
 
-### Installation
+### Quick Start
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
-git clone git@github.com:Frexida/mas.git
-cd mas-ui-app
+git clone https://github.com/yourusername/mas-ui.git
+cd mas-ui
 ```
 
-2. Install dependencies:
+2. **Install dependencies:**
 ```bash
 npm install
+# or
+yarn install
 ```
 
-3. Create environment file:
+3. **Configure environment:**
 ```bash
 cp .env.example .env
 ```
 
-4. Configure API endpoint in `.env`:
-```
-VITE_API_BASE_URL=https://tmp.frexida.com
+4. **Update `.env` with your API endpoint:**
+```env
+VITE_API_BASE_URL=http://localhost:3000  # Your MAS API server
 ```
 
-### Development
-
-Run the development server:
+5. **Start the development server:**
 ```bash
 npm run dev
+# or
+yarn dev
 ```
 
 The application will be available at `http://localhost:5173`
 
-### Build for Production
+## Configuration
+
+### Environment Variables
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `VITE_API_BASE_URL` | MAS API server endpoint | - | Yes |
+| `VITE_HMR_HOST` | Custom HMR host for development | localhost | No |
+| `VITE_HMR_PORT` | Custom HMR port for development | 5173 | No |
+| `VITE_API_PROXY_TARGET` | Proxy target for API calls in dev | - | No |
+
+## Building and Deployment
+
+### Production Build
 
 ```bash
 npm run build
+# or
+yarn build
 ```
 
-The built files will be in the `dist/` directory.
+The optimized production build will be created in the `dist/` directory.
+
+### Deployment Options
+
+MAS-UI can be deployed to various platforms:
+
+- **Static Hosting**: Deploy the `dist/` folder to any static hosting service
+- **Vercel**: See [docs/deployment/vercel.md](docs/deployment/vercel.md)
+- **Cloudflare Workers**: See [docs/deployment/cloudflare.md](docs/deployment/cloudflare.md)
+- **Nginx/Apache**: See example configurations in [docs/deployment/examples/](docs/deployment/examples/)
+
+For detailed deployment instructions, check the [deployment documentation](docs/deployment/).
 
 ## Architecture
 
@@ -131,10 +164,50 @@ Uses React's `useReducer` hook for centralized form state management.
 - Axios for API communication
 - React Markdown for rendering outputs
 
+## Development
+
+### Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server with hot reload |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build locally |
+| `npm run lint` | Run ESLint for code quality |
+| `npm run type-check` | Run TypeScript type checking |
+
+### Project Structure
+
+```
+mas-ui/
+├── src/
+│   ├── components/      # React components
+│   ├── hooks/           # Custom React hooks
+│   ├── services/        # API and utility services
+│   ├── types/           # TypeScript type definitions
+│   ├── utils/           # Utility functions
+│   └── App.tsx          # Main application component
+├── public/              # Static assets
+├── docs/                # Documentation
+│   └── deployment/      # Deployment guides
+└── package.json         # Project configuration
+```
+
 ## Contributing
 
-Please create a feature branch and submit a pull request for any contributions.
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on:
+
+- Setting up your development environment
+- Code style guidelines
+- Submitting pull requests
+- Reporting issues
+
+## Support
+
+- 📖 [Documentation](docs/)
+- 🐛 [Report Issues](https://github.com/yourusername/mas-ui/issues)
+- 💬 [Discussions](https://github.com/yourusername/mas-ui/discussions)
 
 ## License
 
-Proprietary - Internal Use Only
+MIT License - see [LICENSE](LICENSE) for details

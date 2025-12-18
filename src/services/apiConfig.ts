@@ -8,12 +8,11 @@ export interface ApiConfig {
 }
 
 const DEFAULT_CONFIG: ApiConfig = {
-  baseUrl: 'https://mas-api.frexida.com',
+  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
 };
 
 // プリセットURL
 export const PRESET_URLS = [
-  { label: 'Production (mas-api.frexida.com)', value: 'https://mas-api.frexida.com' },
   { label: 'Local (localhost:3000)', value: 'http://localhost:3000' },
   { label: 'Local (localhost:8080)', value: 'http://localhost:8080' },
   { label: 'Custom', value: 'custom' },
@@ -25,10 +24,10 @@ export const loadApiConfig = (): ApiConfig => {
     const stored = localStorage.getItem(API_CONFIG_KEY);
     if (stored) {
       const config = JSON.parse(stored);
-      // 古いURLから新しいURLへの移行
-      if (config.baseUrl && config.baseUrl.includes('tmp.frexida.com')) {
-        config.baseUrl = 'https://mas-api.frexida.com';
-        saveApiConfig(config); // 修正したものを保存
+      // Migrate from old URLs if necessary
+      if (config.baseUrl && (config.baseUrl.includes('tmp.frexida.com') || config.baseUrl.includes('mas-api.frexida.com'))) {
+        config.baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+        saveApiConfig(config); // Save corrected config
       }
       return config;
     }
