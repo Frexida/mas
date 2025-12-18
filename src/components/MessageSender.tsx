@@ -51,7 +51,8 @@ export const MessageSender: React.FC<MessageSenderProps> = ({ tmuxSession }) => 
     const request: MessageRequest = {
       target,
       message: finalMessage,
-      execute
+      execute,
+      session: tmuxSession
     };
 
     try {

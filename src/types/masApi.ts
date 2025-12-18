@@ -102,11 +102,13 @@ export interface SessionListRequest {
  * @property target - Target recipient (e.g., "window1", "agent-11", "all")
  * @property message - Message content to send
  * @property execute - Whether to execute as command (default: false)
+ * @property session - Tmux session name (required)
  */
 export interface MessageRequest {
   target: string;
   message: string;
   execute?: boolean;
+  session: string;
 }
 
 /**
