@@ -96,6 +96,14 @@ app.post('/', async (c) => {
         console.log('mas send stderr:', stderr);
       }
 
+      // Send "execute it." after 3 seconds if execute flag is true
+      if (validated.execute) {
+        setTimeout(async () => {
+          const execCmd = `${MAS_ROOT}/mas send "${target}" "execute it." -e`;
+          await execAsync(execCmd, { cwd: MAS_ROOT, env: { ...process.env, MAS_SESSION_NAME: sessionName }});
+        }, 3000);
+      }
+
       const response: MessageResponse = {
         status: 'acknowledged',
         timestamp: new Date().toISOString(),

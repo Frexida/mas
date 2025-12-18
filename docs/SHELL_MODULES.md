@@ -244,7 +244,6 @@ kill_session "mas-123"
 # Sets up:
 - mas command alias
 - PATH with MAS directory
-- MAS_PROJECT_ROOT environment variable
 ```
 
 **Usage:**

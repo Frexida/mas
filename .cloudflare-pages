@@ -1,0 +1,16 @@
+# Cloudflare Pages Configuration
+# このファイルはPages用の設定を記録するためのものです
+
+# Build設定
+# Root directory: /web
+# Build command: npm install && npm run build
+# Build output directory: dist
+# Deploy command: (空欄)
+
+# 環境変数（Cloudflareダッシュボードで設定）
+# VITE_API_BASE_URL=https://your-api.example.com
+
+# 注意事項
+# - Deploy commandは設定しない
+# - wrangler.tomlはWorkers用なのでPages では使用しない
+# - 静的ファイルは自動的にデプロイされる

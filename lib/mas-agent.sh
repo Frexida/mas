@@ -180,8 +180,8 @@ start_agent() {
         sleep 0.3
     fi
 
-    # clauded起動
-    send_to_pane "$session_name" "$window" "$pane" "clauded --model $model"
+    # claude起動（権限チェックをスキップ）
+    send_to_pane "$session_name" "$window" "$pane" "claude --dangerously-skip-permissions --model $model"
 
     return 0
 }

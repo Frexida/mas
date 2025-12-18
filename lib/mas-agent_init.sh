@@ -12,11 +12,7 @@ alias mas="${MAS_ROOT}/mas"
 # mas コマンドをPATHに追加（エイリアスの代替案）
 export PATH="${MAS_ROOT}:${PATH}"
 
-# 環境変数を設定
-export MAS_PROJECT_ROOT="${MAS_ROOT}"
-
 # デバッグ情報出力（必要に応じてコメントアウト）
 echo "MAS environment initialized:"
 echo "  - MAS command available at: ${MAS_ROOT}/mas"
-echo "  - Project root: ${MAS_PROJECT_ROOT}"
 echo ""
