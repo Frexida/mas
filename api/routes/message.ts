@@ -30,7 +30,15 @@ app.post('/', async (c) => {
 
     // Escape shell arguments
     target = target.replace(/['"\\]/g, '\\$&');
-    const message = validated.message.replace(/['"\\]/g, '\\$&');
+    // For message, we need to handle newlines and other special characters
+    const message = validated.message
+      .replace(/\\/g, '\\\\')  // Escape backslashes first
+      .replace(/"/g, '\\"')    // Escape double quotes
+      .replace(/\$/g, '\\$')   // Escape dollar signs
+      .replace(/`/g, '\\`')    // Escape backticks
+      .replace(/\n/g, '\\n')   // Convert newlines to \n
+      .replace(/\r/g, '\\r')   // Convert carriage returns to \r
+      .replace(/\t/g, '\\t');  // Convert tabs to \t
 
     // Use the session from the request
     const sessionName = validated.session;
@@ -62,8 +70,8 @@ app.post('/', async (c) => {
 
     console.log('Using session:', sessionName);
 
-    // Build mas send command
-    let command = `${MAS_ROOT}/mas send "${target}" "${message}"`;
+    // Build mas send command with echo -e for proper handling of escape sequences
+    let command = `${MAS_ROOT}/mas send "${target}" "$(echo -e "${message}")"`;
     if (validated.execute) {
       command += ' -e';
     }
