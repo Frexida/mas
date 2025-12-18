@@ -7,7 +7,6 @@ bucket = "./dist"
 [assets]
 directory = "./dist"
 
-# Environment variables can be set in Cloudflare dashboard
-# or add them here:
-# [vars]
-# VITE_API_BASE_URL = "https://your-api-server.com"
+# Environment variables
+[vars]
+VITE_API_BASE_URL = "https://mas-api.frexida.com"
