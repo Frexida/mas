@@ -41,8 +41,8 @@ We welcome feature suggestions! Please:
 
 1. **Fork and clone the repository:**
 ```bash
-git clone https://github.com/yourusername/mas-ui.git
-cd mas-ui
+git clone https://github.com/[your-username]/mas-tmux.git
+cd mas-tmux
 ```
 
 2. **Install dependencies:**
@@ -181,8 +181,8 @@ mas-ui/
 ## Getting Help
 
 - 📖 Check the [documentation](docs/)
-- 💬 Open a [discussion](https://github.com/yourusername/mas-ui/discussions)
-- 🐛 Report [issues](https://github.com/yourusername/mas-ui/issues)
+- 💬 Open a [discussion](https://github.com/Frexida/mas-tmux/discussions)
+- 🐛 Report [issues](https://github.com/Frexida/mas-tmux/issues)
 
 ## Recognition
 

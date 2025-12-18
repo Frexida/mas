@@ -13,13 +13,13 @@
     "vite",
     "ui"
   ],
-  "homepage": "https://github.com/yourusername/mas-ui#readme",
+  "homepage": "https://github.com/Frexida/mas-tmux#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/mas-ui.git"
+    "url": "git+https://github.com/Frexida/mas-tmux.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/mas-ui/issues"
+    "url": "https://github.com/Frexida/mas-tmux/issues"
   },
   "type": "module",
   "scripts": {

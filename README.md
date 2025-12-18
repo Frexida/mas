@@ -28,8 +28,8 @@ MAS-UI is a React-based web application that provides an intuitive interface for
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/yourusername/mas-ui.git
-cd mas-ui
+git clone https://github.com/Frexida/mas-tmux.git
+cd mas-tmux
 ```
 
 2. **Install dependencies:**
@@ -205,8 +205,8 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ## Support
 
 - 📖 [Documentation](docs/)
-- 🐛 [Report Issues](https://github.com/yourusername/mas-ui/issues)
-- 💬 [Discussions](https://github.com/yourusername/mas-ui/discussions)
+- 🐛 [Report Issues](https://github.com/Frexida/mas-tmux/issues)
+- 💬 [Discussions](https://github.com/Frexida/mas-tmux/discussions)
 
 ## License
 
