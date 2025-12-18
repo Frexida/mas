@@ -23,10 +23,10 @@ VERSION="2.1.0-refactored"
 # =============================================================================
 
 # 必須モジュールをロード
-source "$SCRIPT_DIR/lib/tmux.sh"
-source "$SCRIPT_DIR/lib/agent.sh"
-source "$SCRIPT_DIR/lib/message.sh"
-source "$SCRIPT_DIR/lib/session.sh"
+source "$SCRIPT_DIR/lib/mas-tmux.sh"
+source "$SCRIPT_DIR/lib/mas-agent.sh"
+source "$SCRIPT_DIR/lib/mas-message.sh"
+source "$SCRIPT_DIR/lib/mas-session.sh"
 
 # プロジェクト管理モジュール（オプション）
 if [ -f "$SCRIPT_DIR/lib/project.sh" ]; then
@@ -150,8 +150,8 @@ initialize_agents_from_config() {
     # 設定ファイルの内容を読み込み
     local config=$(cat "$config_file")
 
-    # SESSION_NAMEをエクスポート（route_messageで使用）
-    export SESSION_NAME="$session_name"
+    # MAS_SESSION_NAMEをエクスポート（route_messageで使用）
+    export MAS_SESSION_NAME="$session_name"
 
     # metaManagerがある場合
     if echo "$config" | jq -e '.agents.metaManager' > /dev/null 2>&1; then
@@ -255,11 +255,11 @@ cmd_start() {
 
     # セッション名とディレクトリをエクスポート
     SESSION_NAME="$session_name"
-    export SESSION_NAME
-    export UNIT_DIR="$unit_dir"
-    export WORKFLOWS_DIR="$workflows_dir"
+    export MAS_SESSION_NAME="$SESSION_NAME"
+    export MAS_UNIT_DIR="$unit_dir"
+    export MAS_WORKFLOWS_DIR="$workflows_dir"
     export MAS_SESSION_ID="$session_id"
-    export SESSION_DIR="$session_dir"
+    export MAS_SESSION_DIR="$session_dir"
 
     # 既存セッションの確認
     if session_exists "$SESSION_NAME"; then
@@ -377,7 +377,7 @@ cmd_send() {
     fi
 
     # SESSION_NAMEをエクスポート（モジュールで使用するため）
-    export SESSION_NAME
+    export MAS_SESSION_NAME="$SESSION_NAME"
 
     # メッセージ送信
     route_message "$target" "$message" "$execute"
@@ -407,7 +407,7 @@ cmd_status() {
     fi
 
     # SESSION_NAMEをエクスポート（モジュールで使用するため）
-    export SESSION_NAME
+    export MAS_SESSION_NAME="$SESSION_NAME"
 
     if [ "$detail" = true ]; then
         show_session_details "$SESSION_NAME"
@@ -445,7 +445,7 @@ cmd_stop() {
     fi
 
     # SESSION_NAMEをエクスポート（モジュールで使用するため）
-    export SESSION_NAME
+    export MAS_SESSION_NAME="$SESSION_NAME"
 
     if [ "$force" = false ]; then
         read -p "セッション '$SESSION_NAME' を停止しますか？ (y/N): " confirm
@@ -489,7 +489,7 @@ cmd_attach() {
     fi
 
     # SESSION_NAMEをエクスポート（モジュールで使用するため）
-    export SESSION_NAME
+    export MAS_SESSION_NAME="$SESSION_NAME"
 
     attach_session "$SESSION_NAME" "$window"
 }

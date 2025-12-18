@@ -5,8 +5,8 @@
 
 # 他のモジュールを読み込み
 LIB_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-if [ -f "$LIB_DIR/tmux.sh" ]; then
-    source "$LIB_DIR/tmux.sh"
+if [ -f "$LIB_DIR/mas-tmux.sh" ]; then
+    source "$LIB_DIR/mas-tmux.sh"
 fi
 
 # =============================================================================
@@ -295,7 +295,7 @@ start_session_from_config() {
 
 # セッション使用統計を表示
 show_session_stats() {
-    local session_name="${1:-$SESSION_NAME}"
+    local session_name="${1:-$MAS_SESSION_NAME}"
 
     if ! session_exists "$session_name"; then
         print_error "Session $session_name does not exist"

@@ -22,8 +22,10 @@ print_warning() {
     echo -e "\033[1;33m[WARNING]\033[0m $1"
 }
 
-# スクリプトのディレクトリを取得
+# スクリプトのディレクトリを取得（scripts/にある）
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# プロジェクトルートディレクトリ
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # インストール先の設定
 INSTALL_DIR="$HOME/.local/bin"
@@ -129,16 +131,16 @@ main() {
         print_success "ディレクトリを作成しました"
     fi
 
-    # mas.shの存在確認
-    if [ ! -f "$SCRIPT_DIR/mas.sh" ]; then
-        print_error "mas.sh が見つかりません: $SCRIPT_DIR/mas.sh"
+    # mas-core.shの存在確認（現在の実装）
+    if [ ! -f "$PROJECT_DIR/mas-core.sh" ]; then
+        print_error "mas-core.sh が見つかりません: $PROJECT_DIR/mas-core.sh"
         exit 1
     fi
 
     # 実行権限の確認と付与
-    if [ ! -x "$SCRIPT_DIR/mas.sh" ]; then
-        print_info "mas.sh に実行権限を付与中..."
-        chmod +x "$SCRIPT_DIR/mas.sh"
+    if [ ! -x "$PROJECT_DIR/mas-core.sh" ]; then
+        print_info "mas-core.sh に実行権限を付与中..."
+        chmod +x "$PROJECT_DIR/mas-core.sh"
         print_success "実行権限を付与しました"
     fi
 
@@ -149,8 +151,8 @@ main() {
     fi
 
     # send_message.shの実行権限も確認
-    if [ -f "$SCRIPT_DIR/send_message.sh" ] && [ ! -x "$SCRIPT_DIR/send_message.sh" ]; then
-        chmod +x "$SCRIPT_DIR/send_message.sh"
+    if [ -f "$PROJECT_DIR/send_message.sh" ] && [ ! -x "$PROJECT_DIR/send_message.sh" ]; then
+        chmod +x "$PROJECT_DIR/send_message.sh"
         print_success "send_message.sh に実行権限を付与しました"
     fi
 
@@ -164,8 +166,8 @@ main() {
     fi
 
     # シンボリックリンクを作成
-    ln -s "$SCRIPT_DIR/mas.sh" "$INSTALL_DIR/$COMMAND_NAME"
-    print_success "シンボリックリンクを作成しました: $INSTALL_DIR/$COMMAND_NAME -> $SCRIPT_DIR/mas.sh"
+    ln -s "$PROJECT_DIR/mas-core.sh" "$INSTALL_DIR/$COMMAND_NAME"
+    print_success "シンボリックリンクを作成しました: $INSTALL_DIR/$COMMAND_NAME -> $PROJECT_DIR/mas-core.sh"
 
     # PATHの確認
     if ! check_path; then

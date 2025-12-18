@@ -1,4 +1,10 @@
-# mas-tmux - Multi-Unit Multi-Agent System
+# MAS - Multi-Agent System
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Shell](https://img.shields.io/badge/Shell-Bash-green.svg)](https://www.gnu.org/software/bash/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-4.x-blue.svg)](https://www.typescriptlang.org/)
+
+A powerful multi-agent system that orchestrates 13 AI agents across 4 specialized units using tmux for session management.
 
 tmuxを用いて13体のAIエージェントを4つのユニットで管理・運用するマルチユニットシステムです。
 
@@ -52,7 +58,7 @@ cd mas-tmux
 npm install -g openspec
 
 # 3. インストールスクリプトを実行
-./install.sh
+./scripts/install.sh
 
 # 4. PATHを設定（.bashrcまたは.zshrcに追加）
 export PATH="$HOME/.local/bin:$PATH"
@@ -321,5 +327,27 @@ tmux list-panes -t mas-tmux:managers
 #### 実装タイミング
 将来的な実装を予定（現時点では未実装）
 
-## ライセンス
-[ライセンス情報を記載]
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
+
+## Code of Conduct
+
+This project adheres to the Contributor Covenant [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+
+## Documentation
+
+- [API Documentation](api/README.md)
+- [Architecture Overview](docs/ARCHITECTURE.md)
+- [Shell Modules Reference](docs/SHELL_MODULES.md)
+- [Examples](examples/)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Built with [Hono](https://hono.dev/) web framework
+- Uses [tmux](https://github.com/tmux/tmux) for session management
+- Powered by [Claude](https://www.anthropic.com/claude) AI agents

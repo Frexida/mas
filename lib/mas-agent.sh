@@ -5,8 +5,8 @@
 
 # tmuxモジュールを読み込み（必須）
 LIB_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-if [ -f "$LIB_DIR/tmux.sh" ]; then
-    source "$LIB_DIR/tmux.sh"
+if [ -f "$LIB_DIR/mas-tmux.sh" ]; then
+    source "$LIB_DIR/mas-tmux.sh"
 fi
 
 # =============================================================================
@@ -174,7 +174,7 @@ start_agent() {
     sleep 0.3
 
     # エージェント環境初期化（mas コマンドを利用可能にする）
-    local init_script="${LIB_DIR}/agent_init.sh"
+    local init_script="${LIB_DIR}/mas-agent_init.sh"
     if [ -f "$init_script" ]; then
         send_to_pane "$session_name" "$window" "$pane" "source $init_script"
         sleep 0.3

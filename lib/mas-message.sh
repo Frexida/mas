@@ -5,11 +5,11 @@
 
 # 他のモジュールを読み込み
 LIB_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-if [ -f "$LIB_DIR/tmux.sh" ]; then
-    source "$LIB_DIR/tmux.sh"
+if [ -f "$LIB_DIR/mas-tmux.sh" ]; then
+    source "$LIB_DIR/mas-tmux.sh"
 fi
-if [ -f "$LIB_DIR/agent.sh" ]; then
-    source "$LIB_DIR/agent.sh"
+if [ -f "$LIB_DIR/mas-agent.sh" ]; then
+    source "$LIB_DIR/mas-agent.sh"
 fi
 
 # =============================================================================
@@ -224,7 +224,7 @@ create_prompt_message() {
 
 # 複数メッセージを順番に送信
 send_batch_messages() {
-    local session_name="${1:-$SESSION_NAME}"
+    local session_name="${1:-$MAS_SESSION_NAME}"
     local target="$2"
     shift 2
 
@@ -240,7 +240,7 @@ send_batch_messages() {
 send_messages_from_file() {
     local file="$1"
     local target="$2"
-    local session_name="${3:-$SESSION_NAME}"
+    local session_name="${3:-$MAS_SESSION_NAME}"
 
     if [ ! -f "$file" ]; then
         print_error "File not found: $file"

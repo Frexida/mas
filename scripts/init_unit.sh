@@ -115,7 +115,7 @@ clauded --model ${unit_model,,} /openspec:proposal "タスクの内容"
 - 仕様とコンテキストは \`.openspec/\` ディレクトリに保存されます
 
 ## 関連ファイル
-- \`../../mas.sh\` - マルチユニットシステム起動スクリプト
+- \`../../mas\` - マルチユニットシステム起動コマンド
 - \`../../send_message.sh\` - エージェント間メッセージ送信
 EOF
 
@@ -184,7 +184,7 @@ main() {
     # 次のステップの案内
     echo ""
     print_info "次のステップ:"
-    print_info "1. マルチユニットシステムを開始: ./mas.sh"
+    print_info "1. マルチユニットシステムを開始: mas start"
     print_info "2. 各エージェントでタスクを実行"
     print_info "3. メッセージ送信例:"
     print_info "   - 個別: ./send_message.sh -p 11 'UIデザインのタスク'"

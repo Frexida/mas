@@ -30,3 +30,15 @@ Thumbs.db
 # Project specific
 config/local.yaml
 *.pid
+
+# MAS temporary files
+.mas_*
+*.mas_tmp
+.active_session
+
+# Node modules (if any)
+node_modules/
+
+# Test results
+tests/results/
+tests/*.log
