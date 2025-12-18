@@ -53,9 +53,9 @@ app.get('/', async (c) => {
     // Extract session name
     const sessionName = masSession.split(':')[0];
 
-    // Get detailed status using mas.sh
+    // Get detailed status using mas
     try {
-      const { stdout: statusOut } = await execAsync(`${MAS_ROOT}/mas.sh status --detail`, {
+      const { stdout: statusOut } = await execAsync(`${MAS_ROOT}/mas status --detail`, {
         cwd: MAS_ROOT,
         env: {
           ...process.env,

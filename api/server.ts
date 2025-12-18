@@ -70,6 +70,8 @@ app.route('/message', messageRoute);
 app.route('/runs', runsRoute);
 app.route('/status', statusRoute);
 app.route('/sessions', sessionsRoute);
+// Alias for WebUI compatibility
+app.route('/session', sessionsRoute);
 
 // Start server
 const port = Number(process.env.MAS_API_PORT || 8765);

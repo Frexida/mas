@@ -54,8 +54,8 @@ app.post('/', async (c) => {
     // Save config file - save only agents configuration
     await writeFile(configPath, JSON.stringify(validated.agents, null, 2));
 
-    // Build command - use mas_refactored.sh
-    const command = `${MAS_ROOT}/mas_refactored.sh start --config "${configPath}" --no-attach`;
+    // Build command - use mas symlink
+    const command = `${MAS_ROOT}/mas start --config "${configPath}" --no-attach`;
 
     // Execute mas.sh start
     try {
@@ -80,12 +80,12 @@ app.post('/', async (c) => {
       console.log('Waiting for agents to start...');
       await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
 
-      // Send initialization messages directly using mas_refactored.sh send
+      // Send initialization messages directly using mas send
       console.log('Sending initialization messages...');
 
       // Process meta manager if present
       if (validated.agents.metaManager) {
-        const metaCmd = `${MAS_ROOT}/mas_refactored.sh send "00" "${validated.agents.metaManager.prompt}" -e`;
+        const metaCmd = `${MAS_ROOT}/mas send "00" "${validated.agents.metaManager.prompt}" -e`;
         console.log('Sending to meta manager:', metaCmd);
         try {
           await execAsync(metaCmd, { cwd: MAS_ROOT, timeout: 5000 });
@@ -98,7 +98,7 @@ app.post('/', async (c) => {
       for (const unit of validated.agents.units) {
         // Initialize manager
         if (unit.manager) {
-          const managerCmd = `${MAS_ROOT}/mas_refactored.sh send "${unit.manager.id}" "${unit.manager.prompt}" -e`;
+          const managerCmd = `${MAS_ROOT}/mas send "${unit.manager.id}" "${unit.manager.prompt}" -e`;
           console.log('Sending to manager:', managerCmd);
           try {
             await execAsync(managerCmd, { cwd: MAS_ROOT, timeout: 5000 });
@@ -110,7 +110,7 @@ app.post('/', async (c) => {
 
         // Initialize workers
         for (const worker of unit.workers) {
-          const workerCmd = `${MAS_ROOT}/mas_refactored.sh send "${worker.id}" "${worker.prompt}" -e`;
+          const workerCmd = `${MAS_ROOT}/mas send "${worker.id}" "${worker.prompt}" -e`;
           console.log('Sending to worker:', workerCmd);
           try {
             await execAsync(workerCmd, { cwd: MAS_ROOT, timeout: 5000 });
