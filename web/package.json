@@ -1,0 +1,62 @@
+{
+  "name": "mas-ui",
+  "version": "0.1.0",
+  "description": "A modern web interface for configuring and managing Multi-Agent Systems",
+  "author": "MAS-UI Contributors",
+  "license": "MIT",
+  "keywords": [
+    "multi-agent-system",
+    "mas",
+    "agent-configuration",
+    "react",
+    "typescript",
+    "vite",
+    "ui"
+  ],
+  "homepage": "https://github.com/Frexida/mas-tmux#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Frexida/mas-tmux.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Frexida/mas-tmux/issues"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:host": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "preview": "vite preview",
+    "preview:host": "vite preview --host 0.0.0.0",
+    "deploy:cloudflare": "wrangler deploy"
+  },
+  "dependencies": {
+    "@cloudflare/kv-asset-handler": "^0.3.0",
+    "axios": "^1.13.2",
+    "lucide-react": "^0.561.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.22",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "terser": "^5.44.1",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.2.4"
+  }
+}

@@ -1,0 +1,12 @@
+name = "mas"
+compatibility_date = "2025-12-18"
+main = "workers-site/index.js"
+
+# Worker Sites configuration
+[site]
+bucket = "./dist"
+
+# Environment variables can be set in Cloudflare dashboard
+# or add them here:
+# [vars]
+# VITE_API_BASE_URL = "https://your-api-server.com"
