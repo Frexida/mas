@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # start_session.sh - セッション作成専用スクリプト（API用）
 # このスクリプトはAPIから呼び出されて、tmuxセッションとエージェントを起動します
 
