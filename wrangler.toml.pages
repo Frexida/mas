@@ -1,0 +1,18 @@
+# Cloudflare Pages用の設定例
+name = "mas-frontend"
+compatibility_date = "2025-12-18"
+
+# Pages用の設定
+[build]
+command = "cd web && npm install && npm run build"
+
+[build.upload]
+directory = "web/dist"
+format = "service-worker"
+
+# 環境変数の例
+[env.production.vars]
+VITE_API_BASE_URL = "https://api.mas.example.com"
+
+[env.staging.vars]
+VITE_API_BASE_URL = "https://staging-api.mas.example.com"
