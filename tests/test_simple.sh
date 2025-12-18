@@ -6,10 +6,10 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 MAS_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
 
 echo "Loading modules..."
-source "$MAS_DIR/lib/tmux.sh" || echo "Failed to load tmux.sh"
-source "$MAS_DIR/lib/agent.sh" || echo "Failed to load agent.sh"
-source "$MAS_DIR/lib/message.sh" || echo "Failed to load message.sh"
-source "$MAS_DIR/lib/session.sh" || echo "Failed to load session.sh"
+source "$MAS_DIR/lib/mas-tmux.sh" || echo "Failed to load mas-tmux.sh"
+source "$MAS_DIR/lib/mas-agent.sh" || echo "Failed to load mas-agent.sh"
+source "$MAS_DIR/lib/mas-message.sh" || echo "Failed to load mas-message.sh"
+source "$MAS_DIR/lib/mas-session.sh" || echo "Failed to load mas-session.sh"
 
 echo "Testing basic functions..."
 

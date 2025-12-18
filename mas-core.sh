@@ -5,15 +5,35 @@
 
 set -e  # エラー時に即座に終了
 
-# スクリプトのディレクトリを取得
-SCRIPT_PATH="${BASH_SOURCE[0]}"
-if [ -L "$SCRIPT_PATH" ]; then
-    SCRIPT_PATH="$(readlink -f "$SCRIPT_PATH")"
-fi
-SCRIPT_DIR="$( cd "$( dirname "$SCRIPT_PATH" )" && pwd )"
+# npm経由でインストールされた場合の処理
+if [ -n "$MAS_NPM_VERSION" ] && [ -n "$MAS_HOME" ]; then
+    # npm版の設定
+    SCRIPT_DIR="$MAS_HOME"
+    LIB_DIR="$MAS_HOME/lib"
+    VERSION="${MAS_NPM_VERSION}"
 
-# バージョン情報
-VERSION="2.1.0-refactored"
+    # ユーザーホームにデータディレクトリを作成
+    MAS_DATA_DIR="${MAS_DATA_DIR:-$HOME/.mas}"
+    if [ ! -d "$MAS_DATA_DIR" ]; then
+        mkdir -p "$MAS_DATA_DIR/sessions"
+        mkdir -p "$MAS_DATA_DIR/workflows"
+        mkdir -p "$MAS_DATA_DIR/unit"
+    fi
+
+    # npm版のパスを設定
+    export MAS_INSTALL_TYPE="npm"
+else
+    # 通常のインストール（git cloneなど）
+    SCRIPT_PATH="${BASH_SOURCE[0]}"
+    if [ -L "$SCRIPT_PATH" ]; then
+        SCRIPT_PATH="$(readlink -f "$SCRIPT_PATH")"
+    fi
+    SCRIPT_DIR="$( cd "$( dirname "$SCRIPT_PATH" )" && pwd )"
+    LIB_DIR="$SCRIPT_DIR/lib"
+    MAS_DATA_DIR="$SCRIPT_DIR"
+    VERSION="2.1.0-refactored"
+    export MAS_INSTALL_TYPE="local"
+fi
 
 # セッション名は動的に生成される（UUID ベース）
 # SESSION_NAME は cmd_start() で設定
@@ -23,14 +43,14 @@ VERSION="2.1.0-refactored"
 # =============================================================================
 
 # 必須モジュールをロード
-source "$SCRIPT_DIR/lib/mas-tmux.sh"
-source "$SCRIPT_DIR/lib/mas-agent.sh"
-source "$SCRIPT_DIR/lib/mas-message.sh"
-source "$SCRIPT_DIR/lib/mas-session.sh"
+source "$LIB_DIR/mas-tmux.sh"
+source "$LIB_DIR/mas-agent.sh"
+source "$LIB_DIR/mas-message.sh"
+source "$LIB_DIR/mas-session.sh"
 
 # プロジェクト管理モジュール（オプション）
-if [ -f "$SCRIPT_DIR/lib/project.sh" ]; then
-    source "$SCRIPT_DIR/lib/project.sh"
+if [ -f "$LIB_DIR/project.sh" ]; then
+    source "$LIB_DIR/project.sh"
 fi
 
 # =============================================================================

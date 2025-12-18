@@ -1,8 +1,9 @@
 # MAS - Multi-Agent System
 
+[![NPM Version](https://img.shields.io/npm/v/@frexida/mas.svg)](https://www.npmjs.com/package/@frexida/mas)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Shell](https://img.shields.io/badge/Shell-Bash-green.svg)](https://www.gnu.org/software/bash/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-4.x-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
 
 A powerful multi-agent system that orchestrates 13 AI agents across 4 specialized units using tmux for session management.
 
@@ -66,31 +67,35 @@ npm start
 ## インストール
 
 ### 前提条件
+- Node.js (>= 18.0.0)
 - tmux
-- claude code (clauded)
-- npm (openspecインストール用)
+- bash
 
-### セットアップ手順
+### インストール方法
 
+#### npm経由でのインストール（推奨）
+```bash
+# グローバルインストール
+npm install -g @frexida/mas
+
+# インストール確認
+mas --version
+```
+
+#### ソースからのインストール
 ```bash
 # 1. リポジトリをクローン
-git clone <repository_url>
+git clone https://github.com/frexida/mas.git
 cd mas
 
-# 2. 依存関係をインストール（API、WebUI、すべてのワークスペース）
+# 2. 依存関係をインストール
 npm install
 
-# 3. インストールスクリプトを実行
-./scripts/install.sh
+# 3. ローカルインストール
+npm link
 
-# 4. PATHを設定（.bashrcまたは.zshrcに追加）
-export PATH="$HOME/.local/bin:$PATH"
-
-# 5. 新しいターミナルを開くか、以下を実行
-source ~/.bashrc  # または source ~/.zshrc
-
-# 6. 統合開発環境を起動
-npm start
+# 4. 動作確認
+mas --version
 ```
 
 ## 使い方

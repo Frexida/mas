@@ -1,0 +1,86 @@
+# Development and build files
+.git/
+.github/
+*.log
+.env
+.env.*
+.mas_*
+*.pid
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Monorepo packages (handled separately)
+api/
+web/
+workers-site/
+
+# Configuration files not needed for CLI
+wrangler.toml
+postcss.config.js
+tailwind.config.js
+tsconfig*.json
+vite.config.ts
+vitest.config.ts
+eslint.config.js
+
+# Session and runtime data
+sessions/
+unit/
+
+# Test files
+tests/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
+# Documentation and project files
+docs/
+openspec/
+.claude/
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+AGENTS.md
+api-spec-sessions.yaml
+
+# Node modules and package locks
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Build artifacts
+dist/
+build/
+*.tgz
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Git files
+.gitignore
+.gitattributes
+
+# Development scripts
+scripts/start-dev.js
+scripts/start-prod.js
+
+# CI/CD
+.travis.yml
+.circleci/
+azure-pipelines.yml
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Editor backup files
+*~
+\#*\#
