@@ -34,6 +34,8 @@ export interface SessionDetail extends SessionInfo {
   agents: AgentStatus[];
   windows: WindowInfo[];
   config?: any;                // Original agent configuration
+  unitDir?: string;            // Path to unit directory (isolated mode)
+  workflowsDir?: string;       // Path to workflows directory (isolated mode)
 }
 
 export interface ConnectionInfo {

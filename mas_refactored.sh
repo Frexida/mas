@@ -15,8 +15,8 @@ SCRIPT_DIR="$( cd "$( dirname "$SCRIPT_PATH" )" && pwd )"
 # バージョン情報
 VERSION="2.1.0-refactored"
 
-# デフォルトのセッション名
-SESSION_NAME="mas-tmux"
+# セッション名は動的に生成される（UUID ベース）
+# SESSION_NAME は cmd_start() で設定
 
 # =============================================================================
 # モジュールのロード
@@ -218,31 +218,46 @@ cmd_start() {
         esac
     done
 
-    # プロジェクトモードの検出
-    local unit_dir="$SCRIPT_DIR/unit"
-    local workflows_dir="$SCRIPT_DIR/workflows"
-    local session_name="$SESSION_NAME"
-
-    if [ -f ".masrc" ] || (command -v find_project_root &> /dev/null && PROJECT_ROOT=$(find_project_root)); then
-        # プロジェクトモード
-        PROJECT_ROOT="${PROJECT_ROOT:-$PWD}"
-        if [ -f "$PROJECT_ROOT/.masrc" ]; then
-            source "$PROJECT_ROOT/.masrc"
-        fi
-        unit_dir="$PROJECT_ROOT/unit"
-        workflows_dir="$PROJECT_ROOT/workflows"
-        session_name=$(generate_session_name "$PROJECT_NAME")
-
-        print_info "=== Multi-Agent System 起動 (プロジェクトモード) ==="
-        print_info "プロジェクト: $PROJECT_NAME"
-        print_info "セッション: $session_name"
-    else
-        print_info "=== Multi-Agent System 起動 (レガシーモード) ==="
+    # セッションIDの生成（環境変数から取得、または新規生成）
+    local session_id="${MAS_SESSION_ID:-}"
+    if [ -z "$session_id" ]; then
+        session_id=$(generate_uuid)
+        export MAS_SESSION_ID="$session_id"
     fi
 
-    # セッション名を更新（エクスポート）
+    # セッションワークスペースの作成
+    local session_dir=$(create_session_workspace "$session_id" "$config_file")
+    if [ $? -ne 0 ]; then
+        print_error "Failed to create session workspace"
+        return 1
+    fi
+
+    # テンプレートからユニットを初期化
+    initialize_session_units "$session_dir"
+
+    # セッション固有のディレクトリを設定
+    local unit_dir="$session_dir/unit"
+    local workflows_dir="$session_dir/workflows"
+    local session_name="mas-${session_id:0:8}"
+
+    # セッションメタデータを作成
+    create_session_metadata "$session_id" "$session_dir" "$session_name" "active"
+
+    # セッションインデックスを更新
+    update_sessions_index "add" "$session_id" "active"
+
+    print_info "=== Multi-Agent System 起動 ==="
+    print_info "Session ID: $session_id"
+    print_info "Session: $session_name"
+    print_info "Workspace: $session_dir"
+
+    # セッション名とディレクトリをエクスポート
     SESSION_NAME="$session_name"
     export SESSION_NAME
+    export UNIT_DIR="$unit_dir"
+    export WORKFLOWS_DIR="$workflows_dir"
+    export MAS_SESSION_ID="$session_id"
+    export SESSION_DIR="$session_dir"
 
     # 既存セッションの確認
     if session_exists "$SESSION_NAME"; then
@@ -252,15 +267,7 @@ cmd_start() {
         return 0
     fi
 
-    # Unit初期化（必要に応じて）
-    if [ "$skip_init" = false ] && [ ! -d "$unit_dir" ]; then
-        print_info "Unit初期化を実行中..."
-        if [ -x "$SCRIPT_DIR/init_unit.sh" ]; then
-            TARGET_UNIT_DIR="$unit_dir" \
-            TARGET_WORKFLOWS_DIR="$workflows_dir" \
-            "$SCRIPT_DIR/init_unit.sh"
-        fi
-    fi
+    # Unit初期化はcreate_session_workspaceで既に完了している
 
     # tmuxセッション作成
     print_info "tmuxセッション '$SESSION_NAME' を作成中..."
@@ -286,8 +293,7 @@ cmd_start() {
     # HTTPサーバー起動
     start_http_server "$SESSION_NAME"
 
-    # セッション情報保存
-    save_session_info "$SESSION_NAME"
+    # セッション情報はcreate_session_metadataで既に保存済み
 
     print_success "全エージェントの起動完了"
 

@@ -28,6 +28,8 @@ export const RunResponseSchema = z.object({
   sessionId: z.string(),
   tmuxSession: z.string(),
   workingDir: z.string(),
+  unitDir: z.string(),
+  workflowsDir: z.string(),
   startedAt: z.string(),
   status: z.enum(['starting', 'started', 'failed'])
 });

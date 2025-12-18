@@ -45,9 +45,14 @@ app.post('/', async (c) => {
     // Generate session ID
     const sessionId = generateSessionId();
 
-    // Create temporary config file
+    // Always create isolated session workspace
+    const sessionDir = path.join(MAS_ROOT, 'sessions', sessionId);
+    const unitDir = path.join(sessionDir, 'unit');
+    const workflowsDir = path.join(sessionDir, 'workflows');
     const configPath = path.join('/tmp', `mas-config-${sessionId}.json`);
-    await writeFile(configPath, JSON.stringify(validated, null, 2));
+
+    // Save config file - save only agents configuration
+    await writeFile(configPath, JSON.stringify(validated.agents, null, 2));
 
     // Build command - use mas_refactored.sh
     const command = `${MAS_ROOT}/mas_refactored.sh start --config "${configPath}" --no-attach`;
@@ -59,7 +64,8 @@ app.post('/', async (c) => {
         timeout: 30000, // 30 second timeout for session creation
         env: {
           ...process.env,
-          MAS_SESSION_NAME: sessionId
+          MAS_SESSION_ID: sessionId,
+          MAS_SESSION_NAME: `mas-${sessionId.substring(0, 8)}`
         }
       });
 
@@ -123,7 +129,9 @@ app.post('/', async (c) => {
       const response: RunResponse = {
         sessionId: sessionId,
         tmuxSession: tmuxSession,
-        workingDir: MAS_ROOT,
+        workingDir: sessionDir,
+        unitDir: unitDir,
+        workflowsDir: workflowsDir,
         startedAt: new Date().toISOString(),
         status: 'started'
       };
@@ -138,7 +146,9 @@ app.post('/', async (c) => {
       const response: RunResponse = {
         sessionId: sessionId,
         tmuxSession: '',
-        workingDir: MAS_ROOT,
+        workingDir: sessionDir,
+        unitDir: unitDir,
+        workflowsDir: workflowsDir,
         startedAt: new Date().toISOString(),
         status: 'failed'
       };

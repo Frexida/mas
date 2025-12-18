@@ -1,0 +1,69 @@
+{
+  "name": "@mas/test-manager",
+  "version": "1.0.0",
+  "description": "Unified test manager for MAS project",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "mas-test": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest",
+    "test:unit": "mas-test run -s api-unit",
+    "test:integration": "mas-test run -s api-integration",
+    "test:shell": "mas-test run -s shell-unit shell-e2e",
+    "test:all": "mas-test run",
+    "test:watch": "mas-test watch",
+    "test:coverage": "mas-test coverage",
+    "test:ci": "mas-test ci --coverage",
+    "dashboard": "tsx src/dashboard.ts",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "keywords": [
+    "test",
+    "testing",
+    "test-runner",
+    "test-manager",
+    "vitest",
+    "bash",
+    "integration"
+  ],
+  "author": "MAS Team",
+  "license": "MIT",
+  "dependencies": {
+    "@hono/node-server": "^1.0.0",
+    "chalk": "^5.3.0",
+    "cli-table3": "^0.6.3",
+    "commander": "^11.1.0",
+    "hono": "^4.0.0",
+    "ora": "^7.0.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@vitest/ui": "^1.0.4",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0",
+    "tsx": "^4.6.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.4"
+  },
+  "peerDependencies": {
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mas-project/mas.git",
+    "directory": "api/test-manager"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

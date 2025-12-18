@@ -2,7 +2,7 @@
  * Session management utilities
  */
 
-import { readFile, access } from 'fs/promises';
+import { readFile, access, readdir, stat } from 'fs/promises';
 import { constants } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -22,17 +22,19 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const MAS_ROOT = path.resolve(__dirname, '../../../');
+const MAS_ROOT = path.resolve(__dirname, '../../');
+
+// Legacy function removed - no longer reading .mas_session files
 
 /**
- * Read .mas_session file
+ * Read isolated session metadata
  */
-export async function readSessionFile(): Promise<any> {
-  const sessionFile = path.join(MAS_ROOT, '.mas_session');
+export async function readIsolatedSessionMetadata(sessionId: string): Promise<any> {
+  const metadataFile = path.join(MAS_ROOT, 'sessions', sessionId, '.session');
 
   try {
-    await access(sessionFile, constants.F_OK);
-    const content = await readFile(sessionFile, 'utf-8');
+    await access(metadataFile, constants.F_OK);
+    const content = await readFile(metadataFile, 'utf-8');
     const lines = content.trim().split('\n');
 
     const sessionData: any = {};
@@ -47,6 +49,29 @@ export async function readSessionFile(): Promise<any> {
   } catch (error) {
     return null;
   }
+}
+
+/**
+ * Read sessions index file
+ */
+export async function readSessionsIndex(): Promise<any> {
+  const indexFile = path.join(MAS_ROOT, 'sessions', '.sessions.index');
+
+  try {
+    await access(indexFile, constants.F_OK);
+    const content = await readFile(indexFile, 'utf-8');
+    return JSON.parse(content);
+  } catch (error) {
+    return { version: '1.0', sessions: [], lastUpdated: '' };
+  }
+}
+
+/**
+ * Check if a UUID is valid
+ */
+function isValidUUID(uuid: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
 }
 
 /**
@@ -80,31 +105,35 @@ export async function getSessionStatus(tmuxSessionName: string): Promise<Session
 }
 
 /**
- * Get all MAS sessions
+ * Get all MAS sessions (all are isolated now)
  */
 export async function getAllSessions(): Promise<SessionInfo[]> {
-  const tmuxSessions = await listTmuxSessions();
   const sessions: SessionInfo[] = [];
 
-  // Read session metadata
-  const sessionFileData = await readSessionFile();
+  // Read sessions from sessions index
+  const sessionsIndex = await readSessionsIndex();
 
-  for (const tmuxSessionName of tmuxSessions) {
-    const status = await getSessionStatus(tmuxSessionName);
-    const windows = await getSessionWindows(tmuxSessionName);
-    const agents = await getAgentsStatus(tmuxSessionName);
+  for (const indexEntry of sessionsIndex.sessions || []) {
+    // Read session metadata
+    const metadata = await readIsolatedSessionMetadata(indexEntry.sessionId);
 
-    const sessionInfo: SessionInfo = {
-      sessionId: parseSessionId(tmuxSessionName),
-      tmuxSession: tmuxSessionName,
-      status,
-      workingDir: sessionFileData?.project_dir || MAS_ROOT,
-      startedAt: sessionFileData?.started_at || new Date().toISOString(),
-      agentCount: agents.filter(a => a.status === 'running').length,
-      httpServerStatus: sessionFileData?.http_server === 'running' ? 'running' : 'stopped'
-    };
+    if (metadata) {
+      const tmuxSessionName = metadata.TMUX_SESSION || indexEntry.tmuxSession;
+      const status = await getSessionStatus(tmuxSessionName);
+      const agents = await getAgentsStatus(tmuxSessionName);
 
-    sessions.push(sessionInfo);
+      const sessionInfo: SessionInfo = {
+        sessionId: indexEntry.sessionId,
+        tmuxSession: tmuxSessionName,
+        status,
+        workingDir: metadata.SESSION_DIR || indexEntry.workingDir,
+        startedAt: metadata.CREATED_AT || indexEntry.createdAt,
+        agentCount: agents.filter(a => a.status === 'running').length,
+        httpServerStatus: 'stopped' // TODO: implement HTTP server status check
+      };
+
+      sessions.push(sessionInfo);
+    }
   }
 
   return sessions;
@@ -114,45 +143,35 @@ export async function getAllSessions(): Promise<SessionInfo[]> {
  * Get detailed session information
  */
 export async function getSessionDetail(sessionId: string): Promise<SessionDetail | null> {
-  // Find the tmux session with this ID
-  const tmuxSessions = await listTmuxSessions();
-  const tmuxSessionName = tmuxSessions.find(name =>
-    name.includes(sessionId) || parseSessionId(name) === sessionId
-  );
-
-  if (!tmuxSessionName) {
+  // All sessions are isolated now, check by UUID
+  if (!isValidUUID(sessionId)) {
     return null;
   }
 
+  const metadata = await readIsolatedSessionMetadata(sessionId);
+  if (!metadata) {
+    return null;
+  }
+
+  const tmuxSessionName = metadata.TMUX_SESSION;
   const status = await getSessionStatus(tmuxSessionName);
   const windows = await getSessionWindows(tmuxSessionName);
   const agents = await getAgentsStatus(tmuxSessionName);
-  const sessionFileData = await readSessionFile();
 
-  const sessionDetail: SessionDetail = {
-    sessionId: parseSessionId(tmuxSessionName),
+  return {
+    sessionId: sessionId,
     tmuxSession: tmuxSessionName,
     status,
-    workingDir: sessionFileData?.project_dir || MAS_ROOT,
-    startedAt: sessionFileData?.started_at || new Date().toISOString(),
+    workingDir: metadata.SESSION_DIR,
+    unitDir: metadata.UNIT_DIR,
+    workflowsDir: metadata.WORKFLOWS_DIR,
+    startedAt: metadata.CREATED_AT,
     agentCount: agents.filter(a => a.status === 'running').length,
-    httpServerStatus: sessionFileData?.http_server === 'running' ? 'running' : 'stopped',
+    httpServerStatus: 'stopped', // TODO: check HTTP server
     agents,
     windows,
     lastActivity: new Date().toISOString() // Could track actual activity
   };
-
-  // Try to read original config if available
-  try {
-    const configPath = path.join(MAS_ROOT, `config-${sessionId}.json`);
-    await access(configPath, constants.F_OK);
-    const configContent = await readFile(configPath, 'utf-8');
-    sessionDetail.config = JSON.parse(configContent);
-  } catch (error) {
-    // Config file not available
-  }
-
-  return sessionDetail;
 }
 
 /**
@@ -206,7 +225,30 @@ export async function connectToSession(
  * Stop a MAS session
  */
 export async function stopSession(sessionId: string, force: boolean = false): Promise<void> {
-  // Find the tmux session
+  // Check if it's an isolated session first
+  if (isValidUUID(sessionId)) {
+    const metadata = await readIsolatedSessionMetadata(sessionId);
+    if (metadata) {
+      // Update session status in metadata
+      const metadataFile = path.join(MAS_ROOT, 'sessions', sessionId, '.session');
+      const updatedMetadata = await readFile(metadataFile, 'utf-8');
+      const updated = updatedMetadata.replace(/STATUS=.*/, 'STATUS=stopped');
+      await require('fs/promises').writeFile(metadataFile, updated);
+
+      // Update sessions index
+      await updateSessionsIndex('update', sessionId, 'status', 'stopped');
+
+      // Kill the tmux session
+      const tmuxSessionName = metadata.TMUX_SESSION;
+      if (tmuxSessionName) {
+        const { killSession } = await import('./tmux.js');
+        await killSession(tmuxSessionName, force);
+      }
+      return;
+    }
+  }
+
+  // Fall back to legacy session handling
   const tmuxSessions = await listTmuxSessions();
   const tmuxSessionName = tmuxSessions.find(name =>
     name.includes(sessionId) || parseSessionId(name) === sessionId
@@ -219,4 +261,22 @@ export async function stopSession(sessionId: string, force: boolean = false): Pr
   // Use the killSession function from tmux utils
   const { killSession } = await import('./tmux.js');
   await killSession(tmuxSessionName, force);
+}
+
+/**
+ * Update sessions index (helper function)
+ */
+async function updateSessionsIndex(action: string, sessionId: string, field?: string, value?: string): Promise<void> {
+  const indexFile = path.join(MAS_ROOT, 'sessions', '.sessions.index');
+  const index = await readSessionsIndex();
+
+  if (action === 'update' && field && value) {
+    const session = index.sessions.find((s: any) => s.sessionId === sessionId);
+    if (session) {
+      session[field] = value;
+    }
+  }
+
+  index.lastUpdated = new Date().toISOString();
+  await require('fs/promises').writeFile(indexFile, JSON.stringify(index, null, 2));
 }

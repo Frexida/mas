@@ -19,8 +19,8 @@ export async function listTmuxSessions(): Promise<string[]> {
 
     return stdout
       .split('\n')
-      .filter(line => line.startsWith('mas-'))
-      .filter(line => line.trim() !== '');
+      .filter(line => line.trim() !== '')
+      .filter(line => line.startsWith('mas-'));
   } catch (error: any) {
     // If tmux server is not running, return empty array
     if (error.message.includes('no server running')) {

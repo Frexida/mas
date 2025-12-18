@@ -35,51 +35,12 @@ generate_session_name() {
     fi
 }
 
-# セッション情報を保存
-save_session_info() {
-    local session_name="$1"
-    local project_dir="${2:-$PWD}"
+# Legacy function - removed (use create_session_metadata instead)
 
-    local info_file="$project_dir/.mas_session"
-
-    cat > "$info_file" << EOF
-SESSION_NAME=$session_name
-STARTED_AT="$(date +"%Y-%m-%d %H:%M:%S")"
-PID=$$
-PROJECT_DIR=$project_dir
-UNIT_DIR=$project_dir/unit
-WORKFLOWS_DIR=$project_dir/workflows
-EOF
-
-    print_info "Session info saved to $info_file"
-    return 0
-}
-
-# セッション情報を読み込み
-load_session_info() {
-    local project_dir="${1:-$PWD}"
-    local info_file="$project_dir/.mas_session"
-
-    if [ -f "$info_file" ]; then
-        source "$info_file"
-        return 0
-    else
-        return 1
-    fi
-}
+# Legacy function - removed (use load_session_metadata instead)
 
 # アクティブなセッションを検索
 find_active_session() {
-    local project_dir="${1:-$PWD}"
-
-    # まずプロジェクトのセッション情報を確認
-    if load_session_info "$project_dir"; then
-        if session_exists "$SESSION_NAME"; then
-            echo "$SESSION_NAME"
-            return 0
-        fi
-    fi
-
     # tmuxセッション一覧から検索
     local sessions=$(tmux ls 2>/dev/null | grep "^mas-" | cut -d: -f1)
     if [ -n "$sessions" ]; then
@@ -252,8 +213,7 @@ cleanup_session() {
         kill_session "$session_name"
     fi
 
-    # セッション情報削除
-    rm -f "$project_dir/.mas_session"
+    # Legacy .mas_session file removed - no longer needed
 
     # 一時ファイルのクリーンアップ
     rm -f "$project_dir/.mas_"*.{pid,log}
@@ -342,6 +302,244 @@ show_session_stats() {
     local client_count=$(tmux list-clients -t "$session_name" 2>/dev/null | wc -l)
     echo "Active clients: $client_count"
 
+    return 0
+}
+
+# =============================================================================
+# Session Workspace Isolation Functions
+# =============================================================================
+
+# Generate a full UUID v4
+generate_uuid() {
+    if [ -f /proc/sys/kernel/random/uuid ]; then
+        cat /proc/sys/kernel/random/uuid
+    else
+        # Fallback method using /dev/urandom
+        local uuid=""
+        local bytes=$(head -c 16 /dev/urandom | xxd -p)
+
+        # Format as UUID v4
+        uuid="${bytes:0:8}-${bytes:8:4}-4${bytes:13:3}-"
+        uuid="${uuid}$(printf '%x' $((0x8 | 0x$(echo ${bytes:16:1} | xxd -p))))"
+        uuid="${uuid}${bytes:17:3}-${bytes:20:12}"
+
+        echo "$uuid"
+    fi
+}
+
+# Create an isolated session workspace
+create_session_workspace() {
+    local session_id="$1"
+    local config_file="${2:-}"
+    local mas_root="${MAS_ROOT:-$SCRIPT_DIR}"
+
+    # Create session directory structure
+    local session_dir="$mas_root/sessions/$session_id"
+
+    if [ -d "$session_dir" ]; then
+        print_error "Session workspace already exists: $session_dir" >&2
+        return 1
+    fi
+
+    print_info "Creating session workspace: $session_dir" >&2
+
+    # Create directories
+    mkdir -p "$session_dir"/{unit,workflows,logs}
+
+    # Save config if provided
+    if [ -n "$config_file" ] && [ -f "$config_file" ]; then
+        cp "$config_file" "$session_dir/config.json"
+    fi
+
+    echo "$session_dir"
+    return 0
+}
+
+# Initialize session units from templates
+initialize_session_units() {
+    local session_dir="$1"
+    local mas_root="${MAS_ROOT:-$SCRIPT_DIR}"
+    local template_unit_dir="$mas_root/unit"
+    local template_workflows_dir="$mas_root/workflows"
+
+    if [ ! -d "$session_dir" ]; then
+        print_error "Session directory does not exist: $session_dir" >&2
+        return 1
+    fi
+
+    print_info "Initializing session units from templates..." >&2
+
+    # Create unit directory if it doesn't exist
+    mkdir -p "$session_dir/unit"
+
+    # Copy unit directories
+    for unit_num in 00 10 11 12 13 20 21 22 23 30 31 32 33; do
+        if [ -d "$template_unit_dir/$unit_num" ]; then
+            print_info "  Copying unit $unit_num..." >&2
+            cp -r "$template_unit_dir/$unit_num" "$session_dir/unit/"
+        fi
+    done
+
+    # Copy workflow files
+    if [ -d "$template_workflows_dir" ]; then
+        print_info "  Copying workflows..." >&2
+        mkdir -p "$session_dir/workflows"
+        cp -r "$template_workflows_dir"/* "$session_dir/workflows/" 2>/dev/null || true
+    fi
+
+    return 0
+}
+
+# Create session metadata file
+create_session_metadata() {
+    local session_id="$1"
+    local session_dir="$2"
+    local tmux_session="${3:-mas-${session_id:0:8}}"
+    local status="${4:-active}"
+
+    local metadata_file="$session_dir/.session"
+
+    cat > "$metadata_file" << EOF
+SESSION_ID=$session_id
+TMUX_SESSION=$tmux_session
+STATUS=$status
+CREATED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+UNIT_DIR=$session_dir/unit
+WORKFLOWS_DIR=$session_dir/workflows
+SESSION_DIR=$session_dir
+EOF
+
+    return 0
+}
+
+# Load session metadata
+load_session_metadata() {
+    local session_id="$1"
+    local mas_root="${MAS_ROOT:-$SCRIPT_DIR}"
+    local session_dir="$mas_root/sessions/$session_id"
+    local metadata_file="$session_dir/.session"
+
+    if [ ! -f "$metadata_file" ]; then
+        print_error "Session metadata not found: $metadata_file"
+        return 1
+    fi
+
+    source "$metadata_file"
+    export SESSION_ID TMUX_SESSION STATUS CREATED_AT UNIT_DIR WORKFLOWS_DIR SESSION_DIR
+
+    return 0
+}
+
+# Update sessions index
+update_sessions_index() {
+    local action="$1"  # add, update, remove
+    local session_id="$2"
+    local mas_root="${MAS_ROOT:-$SCRIPT_DIR}"
+    local index_file="$mas_root/sessions/.sessions.index"
+
+    # Ensure jq is available
+    if ! command -v jq &> /dev/null; then
+        print_warning "jq not found, sessions index not updated"
+        return 1
+    fi
+
+    local temp_file="${index_file}.tmp"
+
+    case "$action" in
+        add)
+            local session_dir="$mas_root/sessions/$session_id"
+            local tmux_session="mas-${session_id:0:8}"
+            local status="${3:-active}"
+
+            if [ ! -f "$index_file" ]; then
+                echo '{"version":"1.0","sessions":[],"lastUpdated":""}' > "$index_file"
+            fi
+
+            jq --arg id "$session_id" \
+               --arg tmux "$tmux_session" \
+               --arg status "$status" \
+               --arg created "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+               --arg dir "$session_dir" \
+               --arg updated "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+               '.sessions += [{
+                   sessionId: $id,
+                   tmuxSession: $tmux,
+                   status: $status,
+                   createdAt: $created,
+                   workingDir: $dir
+               }] | .lastUpdated = $updated' \
+               "$index_file" > "$temp_file" && mv "$temp_file" "$index_file"
+            ;;
+
+        update)
+            local field="$3"
+            local value="$4"
+
+            jq --arg id "$session_id" \
+               --arg field "$field" \
+               --arg value "$value" \
+               --arg updated "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+               '(.sessions[] | select(.sessionId == $id) | .[$field]) = $value |
+                .lastUpdated = $updated' \
+               "$index_file" > "$temp_file" && mv "$temp_file" "$index_file"
+            ;;
+
+        remove)
+            jq --arg id "$session_id" \
+               --arg updated "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+               '.sessions = [.sessions[] | select(.sessionId != $id)] |
+                .lastUpdated = $updated' \
+               "$index_file" > "$temp_file" && mv "$temp_file" "$index_file"
+            ;;
+    esac
+
+    return 0
+}
+
+# Find session by ID
+find_session_by_id() {
+    local session_id="$1"
+    local mas_root="${MAS_ROOT:-$SCRIPT_DIR}"
+    local session_dir="$mas_root/sessions/$session_id"
+
+    if [ -d "$session_dir" ] && [ -f "$session_dir/.session" ]; then
+        echo "$session_dir"
+        return 0
+    fi
+
+    return 1
+}
+
+# Stop isolated session
+stop_isolated_session() {
+    local session_id="$1"
+    local mas_root="${MAS_ROOT:-$SCRIPT_DIR}"
+    local session_dir="$mas_root/sessions/$session_id"
+
+    if [ ! -d "$session_dir" ]; then
+        print_error "Session not found: $session_id"
+        return 1
+    fi
+
+    # Load session metadata
+    if [ -f "$session_dir/.session" ]; then
+        source "$session_dir/.session"
+    fi
+
+    print_info "Stopping isolated session: $session_id"
+
+    # Kill tmux session if exists
+    if [ -n "$TMUX_SESSION" ] && session_exists "$TMUX_SESSION"; then
+        kill_session "$TMUX_SESSION"
+    fi
+
+    # Update session status
+    sed -i 's/^STATUS=.*/STATUS=stopped/' "$session_dir/.session"
+
+    # Update sessions index
+    update_sessions_index "update" "$session_id" "status" "stopped"
+
+    print_success "Session stopped: $session_id"
     return 0
 }
 
