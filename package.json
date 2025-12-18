@@ -33,6 +33,7 @@
     "deploy:cloudflare": "wrangler deploy"
   },
   "dependencies": {
+    "@cloudflare/kv-asset-handler": "^0.3.0",
     "axios": "^1.13.2",
     "lucide-react": "^0.561.0",
     "react": "^19.2.0",
