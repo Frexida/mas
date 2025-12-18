@@ -1,0 +1,46 @@
+{
+  "name": "mas",
+  "version": "0.2.0",
+  "description": "Multi-Agent System - Orchestrate AI agents with tmux",
+  "private": true,
+  "workspaces": [
+    "api",
+    "web"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "start": "node scripts/start-dev.js",
+    "start:api": "npm run start --workspace=api",
+    "start:web": "npm run dev --workspace=web",
+    "start:mas": "./mas start --no-attach",
+    "build": "npm run build --workspaces",
+    "build:api": "npm run build --workspace=api",
+    "build:web": "npm run build --workspace=web",
+    "test": "npm run test --workspaces --if-present",
+    "clean": "rm -rf node_modules api/node_modules web/node_modules"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Frexida/mas-tmux.git"
+  },
+  "keywords": [
+    "multi-agent",
+    "ai",
+    "tmux",
+    "orchestration",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Frexida/mas-tmux/issues"
+  },
+  "homepage": "https://github.com/Frexida/mas-tmux#readme"
+}

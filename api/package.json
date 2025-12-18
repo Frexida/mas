@@ -1,5 +1,5 @@
 {
-  "name": "mas-api",
+  "name": "@mas/api",
   "version": "1.0.0",
   "description": "MAS API Server with Hono",
   "main": "server.ts",

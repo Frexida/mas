@@ -8,11 +8,12 @@ export interface ApiConfig {
 }
 
 const DEFAULT_CONFIG: ApiConfig = {
-  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8765',
 };
 
 // プリセットURL
 export const PRESET_URLS = [
+  { label: 'Local (localhost:8765)', value: 'http://localhost:8765' },
   { label: 'Local (localhost:3000)', value: 'http://localhost:3000' },
   { label: 'Local (localhost:8080)', value: 'http://localhost:8080' },
   { label: 'Custom', value: 'custom' },
@@ -25,8 +26,8 @@ export const loadApiConfig = (): ApiConfig => {
     if (stored) {
       const config = JSON.parse(stored);
       // Migrate from old URLs if necessary
-      if (config.baseUrl && (config.baseUrl.includes('tmp.frexida.com') || config.baseUrl.includes('mas-api.frexida.com'))) {
-        config.baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+      if (config.baseUrl && (config.baseUrl.includes('tmp.frexida.com') || config.baseUrl.includes('mas-api.frexida.com') || config.baseUrl === 'http://localhost:3000')) {
+        config.baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8765';
         saveApiConfig(config); // Save corrected config
       }
       return config;
