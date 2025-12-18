@@ -66,35 +66,27 @@ mas - Multi-Agent System Manager v${VERSION}
 
 コマンド:
     init [--name <name>]    新しいMASプロジェクトを初期化
-    start [options]         MASセッションを開始
-    send <target> <msg>     エージェントにメッセージを送信
+    start                   インフラ起動（APIとWebUI）
+    stop                    インフラ停止（APIとWebUI）
+    send <target> <msg>     エージェントにメッセージを送信（デバッグ用）
     status [--detail]       セッション状態を表示
-    stop [--force]          セッションを停止
-    attach [-w <window>]    セッションにアタッチ
-    list [-u <unit>]        エージェント一覧を表示
     help                    このヘルプを表示
     version                 バージョン情報を表示
-
-startオプション:
-    --config <file>         設定ファイルを指定（JSON形式のエージェント構成）
-    --skip-init             Unit初期化をスキップ
-    --no-attach             起動後にアタッチしない
-    --dev                   開発モード（API & WebUI も起動）
 
 sendオプション:
     -n, --no-execute        メッセージ送信のみ（Enterを送信しない）
     -e, --execute           メッセージ送信後にEnterを送信（デフォルト）
 
 例:
-    mas start                     # セッションを開始
-    mas start --config cfg.json   # 設定ファイルを使用して開始
-    mas send 00 "Hello"           # Meta Managerにメッセージ送信して実行
-    mas send 00 "Hello" -n        # Meta Managerにメッセージ送信のみ
-    mas send design "Task"        # Designユニット全体に送信して実行
-    mas send all "Broadcast"      # 全エージェントに送信して実行
-    mas status --detail           # 詳細な状態を表示
-    mas attach -w development     # developmentウィンドウにアタッチ
-    mas stop                      # セッションを停止
+    mas init                      # 現在のディレクトリでプロジェクト初期化
+    mas start                     # APIとWebUIを起動
+    mas stop                      # APIとWebUIを停止
+
+    # WebUI (http://localhost:5173) からセッションを作成・管理
+
+    # デバッグ用（通常はWebUIから操作）
+    mas send 00 "Hello"           # Meta Managerにメッセージ送信
+    mas status --detail           # セッション状態を確認
 EOF
 }
 
@@ -214,178 +206,108 @@ initialize_agents_from_config() {
     print_success "エージェント初期化完了"
 }
 
-# startコマンド: セッション開始
+# startコマンド: インフラ起動（APIとWebUI）
 cmd_start() {
-    local config_file=""
-    local skip_init=false
-    local no_attach=false
-    local dev_mode=false
+    print_info "=== MAS Infrastructure Startup ==="
 
-    # オプション解析
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --config)
-                config_file="$2"
-                shift 2
-                ;;
-            --skip-init)
-                skip_init=true
-                shift
-                ;;
-            --no-attach)
-                no_attach=true
-                shift
-                ;;
-            --dev)
-                dev_mode=true
-                no_attach=true  # devモードではデフォルトでアタッチしない
-                shift
-                ;;
-            *)
-                shift
-                ;;
-        esac
-    done
+    # MAS_DATA_DIRを確認
+    mkdir -p "$MAS_DATA_DIR"
 
-    # セッションIDの生成（環境変数から取得、または新規生成）
-    local session_id="${MAS_SESSION_ID:-}"
-    if [ -z "$session_id" ]; then
-        session_id=$(generate_uuid)
-        export MAS_SESSION_ID="$session_id"
-    fi
-
-    # セッションワークスペースの作成
-    local session_dir=$(create_session_workspace "$session_id" "$config_file")
-    if [ $? -ne 0 ]; then
-        print_error "Failed to create session workspace"
-        return 1
-    fi
-
-    # テンプレートからユニットを初期化
-    initialize_session_units "$session_dir"
-
-    # セッション固有のディレクトリを設定
-    local unit_dir="$session_dir/unit"
-    local workflows_dir="$session_dir/workflows"
-    local session_name="mas-${session_id:0:8}"
-
-    # セッションメタデータを作成
-    create_session_metadata "$session_id" "$session_dir" "$session_name" "active"
-
-    # セッションインデックスを更新
-    update_sessions_index "add" "$session_id" "active"
-
-    print_info "=== Multi-Agent System 起動 ==="
-    print_info "Session ID: $session_id"
-    print_info "Session: $session_name"
-    print_info "Workspace: $session_dir"
-
-    # セッション名とディレクトリをエクスポート
-    SESSION_NAME="$session_name"
-    export MAS_SESSION_NAME="$SESSION_NAME"
-    export MAS_UNIT_DIR="$unit_dir"
-    export MAS_WORKFLOWS_DIR="$workflows_dir"
-    export MAS_SESSION_ID="$session_id"
-    export MAS_SESSION_DIR="$session_dir"
-
-    # 既存セッションの確認
-    if session_exists "$SESSION_NAME"; then
-        print_warning "セッション '$SESSION_NAME' は既に存在します"
-        print_info "既存セッションにアタッチ: mas attach"
-        print_info "既存セッションを削除: mas stop"
-        return 0
-    fi
-
-    # Unit初期化はcreate_session_workspaceで既に完了している
-
-    # tmuxセッション作成
-    print_info "tmuxセッション '$SESSION_NAME' を作成中..."
-
-    # セッションとウィンドウ作成
-    create_session "$SESSION_NAME"
-    create_mas_windows "$SESSION_NAME"
-
-    # エージェント起動
-    if [ -n "$config_file" ] && [ -f "$config_file" ]; then
-        print_info "設定ファイルからエージェントを起動中..."
-        # まずデフォルト構成でエージェントを起動
-        start_all_agents "$SESSION_NAME" "$unit_dir"
-
-        # 設定ファイルからプロンプトを送信
-        print_info "設定ファイルからエージェントを初期化中..."
-        initialize_agents_from_config "$SESSION_NAME" "$config_file"
-    else
-        print_info "デフォルト構成でエージェントを起動中..."
-        start_all_agents "$SESSION_NAME" "$unit_dir"
-    fi
-
-    # HTTPサーバー起動（旧バージョン - 現在は使わない）
-    # start_http_server "$SESSION_NAME"
-
-    # devモードの場合、APIとWebUIも起動
-    if [ "$dev_mode" = true ]; then
-        # npmインストール版では開発モードは利用不可
-        if [ "$MAS_INSTALL_TYPE" = "npm" ]; then
-            print_warning "開発モード（--dev）はGitリポジトリからのインストールでのみ利用可能です"
-            print_info "WebUIを使用するには:"
-            print_info "  git clone https://github.com/frexida/mas.git"
-            print_info "  cd mas"
-            print_info "  npm install"
-            print_info "  npm start  # または mas start --dev"
-        else
-            print_info "開発モード: API & WebUIを起動中..."
-
-            # APIサーバーを起動
-            if [ -d "$SCRIPT_DIR/api" ]; then
-                print_info "APIサーバーを起動中 (port 8765)..."
+    # APIサーバーを起動
+    if [ -d "$SCRIPT_DIR/api" ]; then
+        # Check if API is already running
+        if [ -f "$MAS_DATA_DIR/api.pid" ]; then
+            local api_pid=$(cat "$MAS_DATA_DIR/api.pid")
+            if ps -p "$api_pid" > /dev/null 2>&1; then
+                print_info "API server is already running (PID: $api_pid)"
+            else
+                rm -f "$MAS_DATA_DIR/api.pid"
+                print_info "Starting API server (port 8765)..."
                 cd "$SCRIPT_DIR/api"
                 nohup npm start > "$MAS_DATA_DIR/api.log" 2>&1 &
                 local api_pid=$!
                 echo "$api_pid" > "$MAS_DATA_DIR/api.pid"
                 cd - > /dev/null
-            else
-                print_warning "APIディレクトリが見つかりません: $SCRIPT_DIR/api"
             fi
+        else
+            print_info "Starting API server (port 8765)..."
+            cd "$SCRIPT_DIR/api"
+            nohup npm start > "$MAS_DATA_DIR/api.log" 2>&1 &
+            local api_pid=$!
+            echo "$api_pid" > "$MAS_DATA_DIR/api.pid"
+            cd - > /dev/null
+        fi
+    else
+        print_error "API directory not found: $SCRIPT_DIR/api"
+        return 1
+    fi
 
-            # WebUIを起動
-            if [ -d "$SCRIPT_DIR/web" ]; then
-                print_info "WebUIを起動中 (port 5173)..."
+    # WebUIを起動
+    if [ -d "$SCRIPT_DIR/web" ]; then
+        # Check if WebUI is already running
+        if [ -f "$MAS_DATA_DIR/web.pid" ]; then
+            local web_pid=$(cat "$MAS_DATA_DIR/web.pid")
+            if ps -p "$web_pid" > /dev/null 2>&1; then
+                print_info "WebUI is already running (PID: $web_pid)"
+            else
+                rm -f "$MAS_DATA_DIR/web.pid"
+                print_info "Starting WebUI (port 5173)..."
                 cd "$SCRIPT_DIR/web"
                 nohup npm run dev > "$MAS_DATA_DIR/web.log" 2>&1 &
                 local web_pid=$!
                 echo "$web_pid" > "$MAS_DATA_DIR/web.pid"
                 cd - > /dev/null
-            else
-                print_warning "Webディレクトリが見つかりません: $SCRIPT_DIR/web"
             fi
+        else
+            print_info "Starting WebUI (port 5173)..."
+            cd "$SCRIPT_DIR/web"
+            nohup npm run dev > "$MAS_DATA_DIR/web.log" 2>&1 &
+            local web_pid=$!
+            echo "$web_pid" > "$MAS_DATA_DIR/web.pid"
+            cd - > /dev/null
+        fi
+    else
+        print_error "Web directory not found: $SCRIPT_DIR/web"
+        return 1
+    fi
 
-            if [ -d "$SCRIPT_DIR/api" ] && [ -d "$SCRIPT_DIR/web" ]; then
-                # 少し待ってからブラウザを開く
-                sleep 2
-                print_success "開発環境が起動しました:"
-                print_info "  WebUI: http://localhost:5173"
-                print_info "  API:   http://localhost:8765"
+    # 起動確認
+    sleep 3
 
-                # ブラウザを自動で開く（可能な場合）
-                if command -v xdg-open &> /dev/null; then
-                    xdg-open "http://localhost:5173" &
-                elif command -v open &> /dev/null; then
-                    open "http://localhost:5173" &
-                fi
-            fi
+    # Check if processes are running
+    local api_running=false
+    local web_running=false
+
+    if [ -f "$MAS_DATA_DIR/api.pid" ]; then
+        local api_pid=$(cat "$MAS_DATA_DIR/api.pid")
+        if kill -0 $api_pid 2>/dev/null; then
+            api_running=true
         fi
     fi
 
-    # セッション情報はcreate_session_metadataで既に保存済み
+    if [ -f "$MAS_DATA_DIR/web.pid" ]; then
+        local web_pid=$(cat "$MAS_DATA_DIR/web.pid")
+        if kill -0 $web_pid 2>/dev/null; then
+            web_running=true
+        fi
+    fi
 
-    print_success "全エージェントの起動完了"
-
-    # アタッチ
-    if [ "$no_attach" = false ]; then
-        print_info "セッションにアタッチしています..."
-        attach_session "$SESSION_NAME"
+    if [ "$api_running" = true ] && [ "$web_running" = true ]; then
+        print_success "MAS infrastructure is running:"
+        print_info "  WebUI: http://localhost:5173"
+        print_info "  API:   http://localhost:8765"
+        print_info ""
+        print_info "Use the WebUI to create and manage sessions."
+    else
+        print_error "Failed to start infrastructure"
+        print_info "Check logs for details:"
+        print_info "  API: $MAS_DATA_DIR/api.log"
+        print_info "  Web: $MAS_DATA_DIR/web.log"
+        return 1
     fi
 }
+
+# Legacy startコマンド: セッション開始（廃止予定）
 
 # sendコマンド: メッセージ送信
 cmd_send() {
@@ -502,66 +424,41 @@ cmd_status() {
     fi
 }
 
-# stopコマンド: セッション停止
+# stopコマンド: インフラ停止（APIとWebUI）
 cmd_stop() {
-    local force=false
+    print_info "Stopping MAS infrastructure..."
 
-    # オプション解析
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --force|-f)
-                force=true
-                shift
-                ;;
-            *)
-                shift
-                ;;
-        esac
-    done
+    local stopped_something=false
 
-    # アクティブなセッションを検索
-    if ! SESSION_NAME=$(find_active_session); then
-        print_info "アクティブなセッションがありません"
-        return 0
-    fi
-
-    # SESSION_NAMEをエクスポート（モジュールで使用するため）
-    export MAS_SESSION_NAME="$SESSION_NAME"
-
-    if [ "$force" = false ]; then
-        read -p "セッション '$SESSION_NAME' を停止しますか？ (y/N): " confirm
-        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-            print_info "キャンセルされました"
-            return 0
-        fi
-    fi
-
-    # devモードで起動したプロセスを停止
+    # Stop API server
     if [ -f "$MAS_DATA_DIR/api.pid" ]; then
         local api_pid=$(cat "$MAS_DATA_DIR/api.pid")
         if ps -p "$api_pid" > /dev/null 2>&1; then
-            print_info "APIサーバーを停止中..."
+            print_info "Stopping API server (PID: $api_pid)..."
             kill "$api_pid" 2>/dev/null || true
+            stopped_something=true
         fi
         rm -f "$MAS_DATA_DIR/api.pid"
     fi
 
+    # Stop WebUI
     if [ -f "$MAS_DATA_DIR/web.pid" ]; then
         local web_pid=$(cat "$MAS_DATA_DIR/web.pid")
         if ps -p "$web_pid" > /dev/null 2>&1; then
-            print_info "WebUIを停止中..."
+            print_info "Stopping WebUI (PID: $web_pid)..."
             kill "$web_pid" 2>/dev/null || true
+            stopped_something=true
         fi
         rm -f "$MAS_DATA_DIR/web.pid"
     fi
 
-    # エージェント停止
-    stop_all_agents "$SESSION_NAME"
+    if [ "$stopped_something" = true ]; then
+        print_success "MAS infrastructure stopped"
+    else
+        print_info "No infrastructure processes were running"
+    fi
 
-    # セッションクリーンアップ
-    cleanup_session "$SESSION_NAME"
-
-    print_success "セッションを停止しました"
+    # Note: Sessions are managed via WebUI and are not affected by this command
 }
 
 # attachコマンド: セッションアタッチ

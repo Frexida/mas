@@ -54,10 +54,10 @@ app.post('/', async (c) => {
     // Save config file - save only agents configuration
     await writeFile(configPath, JSON.stringify(validated.agents, null, 2));
 
-    // Build command - use mas symlink
-    const command = `${MAS_ROOT}/mas start --config "${configPath}" --no-attach`;
+    // Build command - use dedicated session creation script
+    const command = `${MAS_ROOT}/scripts/start_session.sh "${configPath}" "${sessionId}"`;
 
-    // Execute mas.sh start
+    // Execute session creation script
     try {
       const { stdout, stderr } = await execAsync(command, {
         cwd: MAS_ROOT,

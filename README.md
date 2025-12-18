@@ -102,14 +102,16 @@ mas --version
 
 ### 基本的な起動
 ```bash
-# マルチユニットシステムを起動（初期化も自動実行）
-mas
+# インフラストラクチャを起動（API + WebUI）
+mas start
 
-# Unit初期化をスキップして起動
-mas --skip-init
+# ブラウザでWebUIを開く
+open http://localhost:5173
 
-# tmuxセッションにアタッチしない場合
-mas --no-attach
+# WebUIからセッションを作成・管理
+
+# インフラストラクチャを停止
+mas stop
 ```
 
 ### メッセージ送信

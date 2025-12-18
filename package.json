@@ -1,6 +1,6 @@
 {
   "name": "@frexida/mas",
-  "version": "2.3.1",
+  "version": "3.0.0",
   "description": "Multi-Agent System - Orchestrate AI agents with tmux",
   "type": "module",
   "bin": {
