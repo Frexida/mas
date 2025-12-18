@@ -96,19 +96,19 @@ print_info "Starting agents..."
 
 # エージェントのモデル設定（デフォルト）
 declare -A AGENT_MODELS=(
-    ["00"]="claude-3-5-sonnet-20241022"  # Meta Manager
-    ["10"]="claude-3-5-sonnet-20241022"  # Design Manager
-    ["11"]="claude-3-5-sonnet-20241022"  # UI Designer
-    ["12"]="claude-3-5-sonnet-20241022"  # UX Designer
-    ["13"]="claude-3-5-sonnet-20241022"  # Visual Designer
-    ["20"]="claude-3-5-sonnet-20241022"  # Dev Manager
-    ["21"]="claude-3-5-sonnet-20241022"  # Frontend Dev
-    ["22"]="claude-3-5-sonnet-20241022"  # Backend Dev
-    ["23"]="claude-3-5-sonnet-20241022"  # DevOps
-    ["30"]="claude-3-5-sonnet-20241022"  # Business Manager
-    ["31"]="claude-3-5-sonnet-20241022"  # Accounting
-    ["32"]="claude-3-5-sonnet-20241022"  # Strategy
-    ["33"]="claude-3-5-sonnet-20241022"  # Analytics
+    ["00"]="sonnet"  # Meta Manager
+    ["10"]="sonnet"  # Design Manager
+    ["11"]="sonnet"  # UI Designer
+    ["12"]="sonnet"  # UX Designer
+    ["13"]="sonnet"  # Visual Designer
+    ["20"]="sonnet"  # Dev Manager
+    ["21"]="sonnet"  # Frontend Dev
+    ["22"]="sonnet"  # Backend Dev
+    ["23"]="sonnet"  # DevOps
+    ["30"]="sonnet"  # Business Manager
+    ["31"]="sonnet"  # Accounting
+    ["32"]="sonnet"  # Strategy
+    ["33"]="sonnet"  # Analytics
 )
 
 # エージェント起動関数
@@ -124,7 +124,7 @@ start_agent_in_pane() {
     sleep 0.2
 
     # claudeコマンドを起動
-    tmux send-keys -t "$MAS_SESSION_NAME:$window.$pane" "claude --model $model" C-m
+    tmux send-keys -t "$MAS_SESSION_NAME:$window.$pane" "claude --model $model --dangerously-skip-permissions" C-m
 }
 
 # Meta Manager (00) - Window 1
