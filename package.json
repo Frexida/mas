@@ -1,0 +1,64 @@
+{
+  "name": "@frexida/mas",
+  "version": "2.2.0",
+  "description": "Multi-Agent System - Orchestrate AI agents with tmux",
+  "type": "module",
+  "bin": {
+    "mas": "./bin/mas"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "scripts/init_*.sh",
+    "scripts/install.sh",
+    "scripts/post-install.js",
+    "mas-core.sh",
+    "examples/",
+    "workflows/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/post-install.js",
+    "test": "bash tests/test_simple.sh",
+    "test:modules": "bash tests/test_modules.sh",
+    "dev:api": "npm run start --workspace=api",
+    "dev:web": "npm run dev --workspace=web"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/frexida/mas.git"
+  },
+  "keywords": [
+    "mas",
+    "multi-agent",
+    "agent",
+    "ai",
+    "tmux",
+    "orchestration",
+    "automation",
+    "cli",
+    "tool"
+  ],
+  "author": "Frexida",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/frexida/mas/issues"
+  },
+  "homepage": "https://github.com/frexida/mas#readme"
+}

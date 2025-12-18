@@ -1,0 +1,40 @@
+{
+  "sessionName": "simple-project",
+  "agents": {
+    "metaManager": {
+      "prompt": "You are the meta manager overseeing a simple web application project. Coordinate between design and development teams."
+    }
+  },
+  "units": [
+    {
+      "name": "design",
+      "manager": {
+        "id": "10",
+        "prompt": "You are the design manager for a simple web application. Focus on user-friendly interfaces."
+      },
+      "workers": [
+        {
+          "id": "11",
+          "prompt": "You are the UI designer. Create clean and intuitive interface designs."
+        }
+      ]
+    },
+    {
+      "name": "development",
+      "manager": {
+        "id": "20",
+        "prompt": "You are the development manager. Ensure code quality and timely delivery."
+      },
+      "workers": [
+        {
+          "id": "21",
+          "prompt": "You are the frontend developer. Implement responsive and accessible interfaces."
+        },
+        {
+          "id": "22",
+          "prompt": "You are the backend developer. Build robust APIs and server logic."
+        }
+      ]
+    }
+  ]
+}

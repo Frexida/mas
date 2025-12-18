@@ -1,0 +1,275 @@
+# OpenAPI Specification for Session Management Endpoints
+openapi: 3.0.3
+info:
+  title: MAS Session Management API
+  version: 1.0.0
+  description: API endpoints for managing tmux sessions in MAS
+
+paths:
+  /sessions:
+    get:
+      summary: List all tmux sessions
+      description: Returns a list of all available tmux sessions with their current status
+      operationId: listSessions
+      parameters:
+        - name: status
+          in: query
+          description: Filter sessions by status
+          required: false
+          schema:
+            type: string
+            enum: [active, inactive, terminated]
+        - name: limit
+          in: query
+          description: Maximum number of sessions to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          description: Number of sessions to skip for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionListResponse'
+              examples:
+                example1:
+                  value:
+                    sessions:
+                      - sessionId: "550e8400-e29b-41d4-a716-446655440000"
+                        tmuxSession: "mas-session-001"
+                        workingDir: "/home/user/projects/mas"
+                        startedAt: "2024-12-18T10:30:00Z"
+                        status: "active"
+                        lastActivity: "2024-12-18T10:35:00Z"
+                        agentCount: 5
+                      - sessionId: "550e8400-e29b-41d4-a716-446655440001"
+                        tmuxSession: "mas-session-002"
+                        workingDir: "/home/user/projects/mas"
+                        startedAt: "2024-12-18T09:00:00Z"
+                        status: "inactive"
+                        agentCount: 3
+                    count: 2
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /sessions/{sessionId}:
+    get:
+      summary: Get session details
+      description: Returns detailed information about a specific tmux session
+      operationId: getSession
+      parameters:
+        - name: sessionId
+          in: path
+          description: UUID of the session
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionInfo'
+              examples:
+                example1:
+                  value:
+                    sessionId: "550e8400-e29b-41d4-a716-446655440000"
+                    tmuxSession: "mas-session-001"
+                    workingDir: "/home/user/projects/mas"
+                    startedAt: "2024-12-18T10:30:00Z"
+                    status: "active"
+                    lastActivity: "2024-12-18T10:35:00Z"
+                    agentCount: 5
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /sessions/{sessionId}/connect:
+    post:
+      summary: Connect to existing session
+      description: Connects to an existing tmux session and returns session information
+      operationId: connectToSession
+      parameters:
+        - name: sessionId
+          in: path
+          description: UUID of the session to connect to
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reconnect:
+                  type: boolean
+                  description: Force reconnection if already connected
+                  default: false
+      responses:
+        '200':
+          description: Successfully connected to session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunsResponse'
+              examples:
+                example1:
+                  value:
+                    sessionId: "550e8400-e29b-41d4-a716-446655440000"
+                    tmuxSession: "mas-session-001"
+                    workingDir: "/home/user/projects/mas"
+                    startedAt: "2024-12-18T10:30:00Z"
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Session is terminated or unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    SessionStatus:
+      type: string
+      enum: [active, inactive, terminated]
+      description: Current status of the tmux session
+
+    SessionInfo:
+      type: object
+      required:
+        - sessionId
+        - tmuxSession
+        - workingDir
+        - startedAt
+        - status
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+          description: Unique identifier for the session
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        tmuxSession:
+          type: string
+          description: Tmux session name
+          pattern: ^[a-zA-Z0-9-_]+$
+          example: "mas-session-001"
+        workingDir:
+          type: string
+          description: Working directory path
+          example: "/home/user/projects/mas"
+        startedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when session was created
+          example: "2024-12-18T10:30:00Z"
+        status:
+          $ref: '#/components/schemas/SessionStatus'
+        lastActivity:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of last activity (optional)
+          example: "2024-12-18T10:35:00Z"
+        agentCount:
+          type: integer
+          minimum: 0
+          description: Number of agents in the session (optional)
+          example: 5
+
+    SessionListResponse:
+      type: object
+      required:
+        - sessions
+        - count
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionInfo'
+          description: Array of session information
+        count:
+          type: integer
+          minimum: 0
+          description: Total number of sessions
+          example: 2
+
+    RunsResponse:
+      type: object
+      required:
+        - sessionId
+        - tmuxSession
+        - workingDir
+        - startedAt
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+          description: UUID of the created/connected session
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        tmuxSession:
+          type: string
+          description: Tmux session identifier
+          example: "mas-session-001"
+        workingDir:
+          type: string
+          description: Working directory path
+          example: "/home/user/projects/mas"
+        startedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp
+          example: "2024-12-18T10:30:00Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Session not found"
+        code:
+          type: string
+          description: Error code
+          example: "SESSION_NOT_FOUND"

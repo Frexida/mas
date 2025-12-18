@@ -1,44 +1,384 @@
-# 概要
-tmuxを用いてAIエージェントを並列で動作させる。
-4体のエージェントを1unitとして動作させる。
-左上がマネージャー、その他3体がワーカーである。
-マネージャーがタスクの受付をし、３対のワーカーに対して別領域のタスク（デザイン、開発、経理）の点から計画書を作成し、それ をマネージャーが統合する。
-統合されたものは承認プロセスを経る必要がある。それは意思決定の方向のズレを減らすためである。
+# MAS - Multi-Agent System
 
-## 課題
-ドキュメンテーションが懸念点になる。仕様書が不完全な状態でプロダクトの作成はできない。
-もしくは、生成AIのメリットになる試行回数の増加だろうか。一つのアイディアに対していくつもの試作品を作ることができる。
-不完全性が新しいものを生み出すとも考えることができる。
+[![NPM Version](https://img.shields.io/npm/v/@frexida/mas.svg)](https://www.npmjs.com/package/@frexida/mas)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Shell](https://img.shields.io/badge/Shell-Bash-green.svg)](https://www.gnu.org/software/bash/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
+
+A powerful multi-agent system that orchestrates 13 AI agents across 4 specialized units using tmux for session management.
+
+tmuxを用いて13体のAIエージェントを4つのユニットで管理・運用するマルチユニットシステムです。
+
+## システム構成
+
+### ユニット構成
+システムは以下の4つのユニットで構成されています：
+
+#### メタ管理
+- **00: メタマネージャー** (Opus) - 全体統括、ユニット間調整、高レベル意思決定
+
+#### デザインユニット
+- **10: デザインマネージャー** (Opus) - デザイン戦略、品質管理、チーム統括
+- **11: UIデザイナー** (Sonnet) - ユーザーインターフェース設計
+- **12: UXデザイナー** (Sonnet) - ユーザー体験設計
+- **13: ビジュアルデザイナー** (Sonnet) - ビジュアルデザイン、ブランディング
+
+#### 開発ユニット
+- **20: 開発マネージャー** (Opus) - 技術選定、アーキテクチャ設計、開発統括
+- **21: フロントエンド開発** (Sonnet) - UI実装、クライアントサイド開発
+- **22: バックエンド開発** (Sonnet) - サーバーサイド実装、API開発
+- **23: DevOps** (Sonnet) - インフラ構築、CI/CD、デプロイメント
+
+#### 経営・会計ユニット
+- **30: 経営・会計マネージャー** (Opus) - 予算管理、戦略立案、ビジネス統括
+- **31: 会計担当** (Sonnet) - コスト分析、予算計画、財務管理
+- **32: 戦略担当** (Sonnet) - ビジネス戦略、市場分析、競合分析
+- **33: 分析担当** (Sonnet) - データ分析、パフォーマンス評価、KPI管理
+
+### tmuxウィンドウ構成
+- **Window 0: managers** - マネージャー群（00, 10, 20, 30）
+- **Window 1: design** - デザインユニット（10, 11, 12, 13）
+- **Window 2: development** - 開発ユニット（20, 21, 22, 23）
+- **Window 3: business** - 経営・会計ユニット（30, 31, 32, 33）
+
+## WebUI インターフェース
+
+MASは、モダンなReact製WebUIを統合しています。これにより、ブラウザから直感的にエージェントシステムを設定・管理できます。
+
+### 主な機能
+- 🤖 **動的エージェント設定**: 1-4ユニットの柔軟な階層構成
+- 📝 **ロールベースプロンプト**: メタマネージャー、ユニットマネージャー、ワーカーへの特定プロンプト割り当て
+- 🎯 **テンプレートシステム**: 事前設定テンプレートによる迅速なエージェント初期化
+- 🌐 **多言語サポート**: 日本語・英語テンプレート対応
+- 📡 **リアルタイムセッション管理**: アクティブエージェントセッションの表示と対話
+- 💬 **インタラクティブメッセージング**: 初期化後のエージェントへのメッセージ送信
+- 🔄 **自動リトライロジック**: エクスポネンシャルバックオフによる堅牢性
+- ⚡ **モダン技術スタック**: React、TypeScript、Viteで構築
+
+### WebUI起動
+```bash
+# 統合開発サーバーの起動（API + WebUI）
+npm start
+
+# WebUIは http://localhost:5173 でアクセス可能
+# APIは http://localhost:8765 で稼働
+```
+
+## インストール
+
+### 前提条件
+- Node.js (>= 18.0.0)
+- tmux
+- bash
+
+### インストール方法
+
+#### npm経由でのインストール（推奨）
+```bash
+# グローバルインストール
+npm install -g @frexida/mas
+
+# インストール確認
+mas --version
+```
+
+#### ソースからのインストール
+```bash
+# 1. リポジトリをクローン
+git clone https://github.com/frexida/mas.git
+cd mas
+
+# 2. 依存関係をインストール
+npm install
+
+# 3. ローカルインストール
+npm link
+
+# 4. 動作確認
+mas --version
+```
+
+## 使い方
+
+### 基本的な起動
+```bash
+# マルチユニットシステムを起動（初期化も自動実行）
+mas
+
+# Unit初期化をスキップして起動
+mas --skip-init
+
+# tmuxセッションにアタッチしない場合
+mas --no-attach
+```
+
+### メッセージ送信
+
+#### 個別エージェントへの送信
+```bash
+# 特定のエージェントに送信（2桁番号）
+./send_message.sh -p 11 "UIデザインのタスク"
+./send_message.sh -p 22 "APIの実装について"
+```
+
+#### ユニット単位での送信
+```bash
+# デザインユニット全体（10-13）
+./send_message.sh -p design "デザインチームへの通知"
+
+# 開発ユニット全体（20-23）
+./send_message.sh -p development "開発チームへの通知"
+
+# 経営・会計ユニット全体（30-33）
+./send_message.sh -p business "経営チームへの通知"
+```
+
+#### グループ送信
+```bash
+# 全マネージャー（00, 10, 20, 30）
+./send_message.sh -p managers "マネージャー会議を開始"
+
+# 全エージェント（13体全て）
+./send_message.sh -p all "全体連絡事項"
+```
+
+#### 実行オプション
+```bash
+# -e オプションでEnterキーも送信（コマンド実行）
+./send_message.sh -p 00 -e "/openspec:proposal 新機能の開発"
+```
+
+### セッション管理
+```bash
+# セッション一覧を表示
+tmux ls
+
+# 既存セッションにアタッチ
+tmux attach -t mas-tmux
+
+# ウィンドウ切り替え（アタッチ中）
+# Ctrl-b 0 : マネージャー群
+# Ctrl-b 1 : デザインユニット
+# Ctrl-b 2 : 開発ユニット
+# Ctrl-b 3 : 経営・会計ユニット
+
+# セッションを終了
+tmux kill-session -t mas-tmux
+```
+
+## ディレクトリ構造
+```
+mas-tmux/
+├── mas.sh              # メイン起動スクリプト（マルチユニット対応）
+├── init_unit.sh        # 13エージェント初期化スクリプト
+├── send_message.sh     # 柔軟なメッセージルーティング
+├── install.sh          # インストールスクリプト
+└── unit/               # 各エージェントの作業ディレクトリ
+    ├── 00/             # メタマネージャー
+    ├── 10-13/          # デザインユニット
+    ├── 20-23/          # 開発ユニット
+    └── 30-33/          # 経営・会計ユニット
+```
+
+## 設計思想
+
+### メッセージング アーキテクチャ
+
+MASシステムは **レイヤード・メッセージング** を採用しています：
+
+1. **APIレイヤー** (`/api`) - 外部インターフェース（WebUI等）からのリクエスト受付
+2. **コマンドレイヤー** (`mas send`) - メッセージルーティングとセッション管理を統一的に処理
+3. **配信レイヤー** (tmux) - 実際のエージェントへのメッセージ配信
+
+**重要な設計原則：**
+- APIは直接tmuxを操作せず、必ず `mas send` コマンドを経由
+- `mas send` がすべての送信ロジック（ターゲット解決、セッション管理、実行制御）を吸収
+- APIはシンプルなプロキシとして機能し、sessionパラメータを環境変数として渡すのみ
+- この設計により、CLI/API/WebUIすべてが同一のメッセージング基盤を使用
+
+## HTTP API
+
+システムはHTTPサーバーを内蔵しており、POSTリクエスト経由でエージェントにメッセージを送信できます。
+
+### APIエンドポイント
+- **URL**: `http://localhost:8765/message`
+- **メソッド**: POST
+- **Content-Type**: application/json
+
+### リクエスト形式
+```json
+{
+  "target": "00",           // エージェントID、ユニット名、またはグループ
+  "message": "タスク内容",   // 送信するメッセージ
+  "execute": false          // true でEnterキー送信（オプション、デフォルト: false）
+}
+```
+
+### レスポンス形式
+```json
+{
+  "status": "acknowledged",
+  "target": "00",
+  "timestamp": "2025-12-12T08:00:00.000Z"
+}
+```
+
+### 使用例
+
+#### 個別エージェントへの送信
+```bash
+curl -X POST http://localhost:8765/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target": "00",
+    "message": "新しいプロジェクトを開始してください"
+  }'
+```
+
+#### ユニット全体への送信
+```bash
+curl -X POST http://localhost:8765/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target": "design",
+    "message": "UIデザインのレビューを開始"
+  }'
+```
+
+#### コマンド実行（executeフラグ付き）
+```bash
+curl -X POST http://localhost:8765/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target": "20",
+    "message": "/openspec:proposal 新機能の実装",
+    "execute": true
+  }'
+```
+
+### HTTPサーバーの管理
+- 自動起動: `mas start` 実行時に自動的にHTTPサーバーも起動
+- ポート: デフォルトは8765（環境変数 `MAS_HTTP_PORT` で変更可能）
+- 状態確認: `mas status` でHTTPサーバーの稼働状態を確認
+- ログ: `.mas_http.log` にアクセスログが記録される
+- 実装: Node.js (`http_server.js`) - わずか20行の簡潔な実装
+
+## ワークフロー例
+
+### 大規模プロジェクトの開始
+```bash
+# 1. メタマネージャーにプロジェクト概要を伝える
+./send_message.sh -p 00 -e "/openspec:proposal ECサイトの構築"
+
+# 2. 各マネージャーに詳細タスクを配分
+./send_message.sh -p managers "各ユニットでタスクを分解してください"
+
+# 3. デザインユニットでUI/UX設計
+./send_message.sh -p design "ECサイトのデザイン案を作成"
+
+# 4. 開発ユニットで実装
+./send_message.sh -p development "デザインに基づいて実装開始"
+
+# 5. 経営・会計ユニットでコスト分析
+./send_message.sh -p business "プロジェクトの予算計画を策定"
+```
+
+## アンインストール
+```bash
+./install.sh --uninstall
+```
 
 ## 技術要件
-- tmux
-- claude code
+- tmux 2.0以上
+- claude code (clauded)
 - openspec
+- bash 4.0以上
+- npm（openspecインストール用）
 
-# 概要
-4体のエージェントの単位をunitと呼称する。
-unitが動作する仕組みを決める。
+## トラブルシューティング
 
-## 技術スタック
-- claude code
-- openspec
-- mas-tmux
+### tmuxセッションが既に存在する場合
+```bash
+tmux kill-session -t mas-tmux
+mas
+```
 
-#仕様
+### エージェントが応答しない場合
+特定のウィンドウ・ペインを確認：
+```bash
+tmux attach -t mas-tmux
+# Ctrl-b [window番号] でウィンドウ切り替え
+# Ctrl-b q でペイン番号確認
+```
 
-mas-tmuxはtmuxでunitを制御するアプリケーションである。
-mas-unit
-└── unit
-    ├── 0
-    ├── 1
-    ├── 2
-    └── 3
-各番号に対応した場所（0ならマネージャー）でopenspecを実行する。
-これによりコンテキストの保存が可能になる。
-実行例
-cd unit/0
-openspec init
-clauded /openspec:proposal タスク
+### メッセージが届かない場合
+```bash
+# セッションの存在確認
+tmux has-session -t mas-tmux
 
-また、各ディレクトリでclaudeを実行することでclauded -cが使えるようになる
+# エージェントの状態確認
+tmux list-panes -t mas-tmux:managers
+```
 
+## やりたいこと
+
+### OpenSpec出力の可視化（Docusaurus統合）
+
+各ユニットが生成するOpenSpec仕様書・提案書を人間が読みやすい形で提供するため、Docusaurusを使った静的サイトジェネレーターの導入を検討中。
+
+#### 背景
+- 13体のエージェントがそれぞれ `unit/XX/openspec/` に仕様書を出力
+- 情報が分散していて全体像が把握しづらい
+- 横断的な検索や状態確認が困難
+
+#### 実装案
+1. **Docusaurusサイトの構築**
+   - `docs-site/` ディレクトリにDocusaurusプロジェクトを作成
+   - 日本語対応の美しいドキュメントサイトとして構成
+   - 全文検索機能、サイドバーナビゲーション、バージョン管理を活用
+
+2. **同期スクリプト（`scripts/sync-openspec.sh`）**
+   ```bash
+   # 各ユニットのOpenSpecドキュメントをDocusaurusにコピー
+   # proposals/とspecifications/をマークダウンとして整形
+   # メタデータを付与して検索性を向上
+   ```
+
+3. **自動更新の仕組み**
+   - エージェントがOpenSpec更新時に自動同期
+   - リアルタイムプレビューサーバーの提供
+   - 静的サイトとしてビルド・デプロイ可能
+
+4. **期待される効果**
+   - 全エージェントの出力を一箇所で閲覧
+   - プロジェクトの進行状況を俯瞰的に把握
+   - 美しいUIで仕様書を閲覧・検索
+   - チーム外のステークホルダーへの共有が容易
+
+#### 実装タイミング
+将来的な実装を予定（現時点では未実装）
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
+
+## Code of Conduct
+
+This project adheres to the Contributor Covenant [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+
+## Documentation
+
+- [API Documentation](api/README.md)
+- [Architecture Overview](docs/ARCHITECTURE.md)
+- [Shell Modules Reference](docs/SHELL_MODULES.md)
+- [Examples](examples/)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Built with [Hono](https://hono.dev/) web framework
+- Uses [tmux](https://github.com/tmux/tmux) for session management
+- Powered by [Claude](https://www.anthropic.com/claude) AI agents

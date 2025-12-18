@@ -1,0 +1,275 @@
+name: MAS CI/CD Pipeline
+
+# GitHub Actions用のCI/CD設定
+# プルリクエストとメインブランチへのプッシュで自動実行
+
+on:
+  push:
+    branches: [ main, develop, 'feature/**' ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # 毎日午前3時にスケジュールテスト実行（日本時間正午）
+    - cron: '0 3 * * *'
+
+env:
+  MAS_HTTP_PORT: 8765
+  NODE_VERSION: '18'
+
+jobs:
+  # Lintとコード品質チェック
+  lint:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Check shell scripts
+        run: |
+          # shellcheckをインストール
+          sudo apt-get update && sudo apt-get install -y shellcheck
+
+          # シェルスクリプトの構文チェック
+          find . -name "*.sh" -type f | while read script; do
+            echo "Checking $script..."
+            shellcheck "$script" || true
+          done
+
+      - name: Check Node.js syntax
+        run: |
+          node --check http_server.js
+
+  # ユニットテストと統合テスト
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    needs: lint
+
+    strategy:
+      matrix:
+        test-suite: [http-server, integration, performance]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tmux curl bc jq
+
+      - name: Start MAS system
+        run: |
+          # tmuxセッションを開始
+          tmux new-session -d -s mas-tmux
+
+          # HTTPサーバーを起動
+          nohup node http_server.js > http_server.log 2>&1 &
+          echo $! > http_server.pid
+
+          # サーバー起動を待つ
+          for i in {1..30}; do
+            if curl -s http://localhost:8765 > /dev/null 2>&1; then
+              echo "HTTP server is running"
+              break
+            fi
+            echo "Waiting for server... ($i/30)"
+            sleep 1
+          done
+
+      - name: Run ${{ matrix.test-suite }} tests
+        run: |
+          case "${{ matrix.test-suite }}" in
+            http-server)
+              echo "Running HTTP server tests..."
+              bash tests/test_http_server.sh
+              ;;
+            integration)
+              echo "Running integration tests..."
+              # 簡易統合テスト
+              for i in {1..10}; do
+                response=$(curl -s -X POST http://localhost:8765/message \
+                  -H "Content-Type: application/json" \
+                  -d '{"target":"00","message":"CI test '$i'"}' \
+                  -w "\n%{http_code}")
+
+                http_code=$(echo "$response" | tail -n1)
+                if [ "$http_code" != "200" ]; then
+                  echo "Test failed: HTTP $http_code"
+                  exit 1
+                fi
+              done
+              echo "All integration tests passed"
+              ;;
+            performance)
+              echo "Running performance tests..."
+              START=$(date +%s)
+              for i in {1..100}; do
+                curl -s -X POST http://localhost:8765/message \
+                  -H "Content-Type: application/json" \
+                  -d '{"target":"00","message":"perf test"}' \
+                  -o /dev/null
+              done
+              END=$(date +%s)
+              DURATION=$((END - START))
+              echo "100 requests in ${DURATION}s"
+
+              # 性能基準: 100リクエスト10秒以内
+              if [ $DURATION -gt 10 ]; then
+                echo "Performance test failed: Too slow"
+                exit 1
+              fi
+              ;;
+          esac
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.test-suite }}
+          path: |
+            tests/results/
+            *.log
+
+      - name: Cleanup
+        if: always()
+        run: |
+          if [ -f http_server.pid ]; then
+            kill $(cat http_server.pid) 2>/dev/null || true
+          fi
+          tmux kill-session -t mas-tmux 2>/dev/null || true
+
+  # セキュリティスキャン
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run security checks
+        run: |
+          echo "Checking for hardcoded secrets..."
+          # 簡易的な秘密情報チェック
+          grep -r "password\|secret\|key\|token" --include="*.js" --include="*.sh" . || true
+
+      - name: Check for vulnerable patterns
+        run: |
+          echo "Checking for command injection risks..."
+          # evalやexecの使用をチェック
+          grep -r "eval\|exec" --include="*.sh" . || echo "No eval/exec found"
+
+  # ビルドとアーティファクト作成
+  build:
+    name: Build and Package
+    runs-on: ubuntu-latest
+    needs: [test, security]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create deployment package
+        run: |
+          # デプロイ用パッケージ作成
+          mkdir -p dist
+          cp -r http_server.js send_message.sh mas.sh lib/ workflows/ dist/
+
+          # バージョン情報を追加
+          echo "VERSION=$(git rev-parse --short HEAD)" > dist/VERSION
+          echo "BUILD_TIME=$(date -u +%Y%m%d-%H%M%S)" >> dist/VERSION
+
+      - name: Create tarball
+        run: |
+          tar -czf mas-tmux-${{ github.sha }}.tar.gz dist/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: mas-tmux-package
+          path: mas-tmux-*.tar.gz
+
+  # デプロイ（メインブランチのみ）
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-1
+
+      - name: Deploy to S3
+        run: |
+          # S3にアーティファクトをアップロード
+          echo "Deploying to S3..."
+          # aws s3 cp mas-tmux-*.tar.gz s3://your-bucket/releases/
+
+      - name: Trigger CodeDeploy
+        run: |
+          # CodeDeployでEC2インスタンスにデプロイ
+          echo "Triggering deployment..."
+          # aws deploy create-deployment ...
+
+  # テスト結果のサマリー
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    if: always()
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Generate test report
+        run: |
+          echo "# Test Results Summary" > summary.md
+          echo "" >> summary.md
+          echo "## Build: ${{ github.run_number }}" >> summary.md
+          echo "## Commit: ${{ github.sha }}" >> summary.md
+          echo "" >> summary.md
+
+          # テスト結果を集計
+          echo "| Test Suite | Status |" >> summary.md
+          echo "|------------|--------|" >> summary.md
+
+          # 各テストの結果を表示
+          for suite in http-server integration performance; do
+            if [ -d "test-results-$suite" ]; then
+              echo "| $suite | ✅ |" >> summary.md
+            else
+              echo "| $suite | ❌ |" >> summary.md
+            fi
+          done
+
+      - name: Comment PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('summary.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });

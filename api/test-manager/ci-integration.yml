@@ -1,0 +1,423 @@
+# GitHub Actions CI Integration for MAS Test Manager
+name: MAS Test Suite
+
+on:
+  push:
+    branches: [ main, develop, feature/*, release/* ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run nightly tests at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - api-unit
+          - api-integration
+          - shell-unit
+          - shell-e2e
+          - performance
+
+jobs:
+  # Unit Tests
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./api
+        run: npm ci
+
+      - name: Run unit tests
+        working-directory: ./api
+        run: npm run test:unit -- --reporter=json --outputFile=test-results-unit.json
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: unit-test-results-${{ matrix.node-version }}
+          path: api/test-results-unit.json
+
+  # Integration Tests
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: mas
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: mas_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install tmux
+        run: sudo apt-get update && sudo apt-get install -y tmux
+
+      - name: Install dependencies
+        working-directory: ./api
+        run: npm ci
+
+      - name: Run integration tests
+        working-directory: ./api
+        env:
+          DATABASE_URL: postgres://mas:testpass@localhost:5432/mas_test
+          NODE_ENV: test
+        run: npm run test:integration -- --reporter=json --outputFile=test-results-integration.json
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-results
+          path: api/test-results-integration.json
+
+  # Shell Script Tests
+  shell-tests:
+    name: Shell Script Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tmux curl jq bc
+
+      - name: Run shell tests
+        run: |
+          cd tests
+          ./ci_test_runner.sh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: shell-test-results
+          path: tests/test-results.txt
+
+  # E2E Tests
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tmux curl jq
+
+      - name: Install Node dependencies
+        working-directory: ./api
+        run: npm ci
+
+      - name: Start API server
+        working-directory: ./api
+        run: |
+          npm run start:test &
+          sleep 5
+
+      - name: Run E2E tests
+        run: |
+          cd tests
+          ./test_e2e.sh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: e2e-test-results
+          path: tests/e2e-results.txt
+
+  # Performance Tests
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'schedule' || github.event.inputs.test_suite == 'performance'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tmux curl jq bc
+          cd api && npm ci
+
+      - name: Run performance tests
+        run: |
+          cd tests
+          ./test_performance.sh
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-test-results
+          path: tests/performance-results.json
+
+      - name: Comment PR with performance results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('tests/performance-results.json', 'utf8'));
+
+            const comment = `## Performance Test Results
+
+            | Metric | Value | Threshold | Status |
+            |--------|-------|-----------|--------|
+            | Response Time (p95) | ${results.p95}ms | 200ms | ${results.p95 < 200 ? '✅' : '❌'} |
+            | Throughput | ${results.throughput} req/s | 100 req/s | ${results.throughput > 100 ? '✅' : '❌'} |
+            | Memory Usage | ${results.memory}MB | 512MB | ${results.memory < 512 ? '✅' : '❌'} |
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # Code Coverage
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./api
+        run: npm ci
+
+      - name: Run tests with coverage
+        working-directory: ./api
+        run: npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./api/coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Generate coverage badge
+        run: |
+          COVERAGE=$(cat api/coverage/coverage-summary.json | jq '.total.lines.pct')
+          echo "Coverage: ${COVERAGE}%"
+          echo "COVERAGE=${COVERAGE}" >> $GITHUB_ENV
+
+      - name: Create coverage badge
+        uses: schneegans/dynamic-badges-action@v1.6.0
+        with:
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: your-gist-id
+          filename: mas-coverage.json
+          label: Coverage
+          message: ${{ env.COVERAGE }}%
+          color: ${{ env.COVERAGE > 80 && 'green' || env.COVERAGE > 60 && 'yellow' || 'red' }}
+
+  # Test Report
+  test-report:
+    name: Generate Test Report
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, shell-tests, e2e-tests]
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all test results
+        uses: actions/download-artifact@v3
+        with:
+          path: test-results
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Install test manager
+        working-directory: ./api
+        run: |
+          npm ci
+          npm link ./test-manager
+
+      - name: Generate consolidated report
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+
+          const results = [];
+          const resultsDir = 'test-results';
+
+          // Collect all test results
+          const files = fs.readdirSync(resultsDir, { recursive: true });
+          files.forEach(file => {
+            if (file.endsWith('.json')) {
+              const content = fs.readFileSync(path.join(resultsDir, file), 'utf8');
+              results.push(JSON.parse(content));
+            }
+          });
+
+          // Generate summary
+          const summary = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            skipped: 0,
+            duration: 0,
+            timestamp: new Date().toISOString()
+          };
+
+          results.forEach(r => {
+            if (r.summary) {
+              summary.total += r.summary.total || 0;
+              summary.passed += r.summary.passed || 0;
+              summary.failed += r.summary.failed || 0;
+              summary.skipped += r.summary.skipped || 0;
+            }
+          });
+
+          // Create markdown report
+          const report = \`# Test Report
+
+          **Date:** \${summary.timestamp}
+          **Status:** \${summary.failed === 0 ? '✅ PASSED' : '❌ FAILED'}
+
+          ## Summary
+          - Total Tests: \${summary.total}
+          - Passed: \${summary.passed}
+          - Failed: \${summary.failed}
+          - Skipped: \${summary.skipped}
+          - Pass Rate: \${((summary.passed / summary.total) * 100).toFixed(2)}%
+          \`;
+
+          fs.writeFileSync('test-report.md', report);
+          console.log(report);
+          "
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-report
+          path: test-report.md
+
+      - name: Comment PR with test results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('test-report.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+
+  # Notify on failure
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, shell-tests, e2e-tests]
+    if: failure()
+
+    steps:
+      - name: Send Slack notification
+        if: env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST $SLACK_WEBHOOK_URL \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "text": "⚠️ MAS Test Suite Failed",
+              "blocks": [{
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*Test Suite Failed*\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref }}\n*Commit:* ${{ github.sha }}\n*Author:* ${{ github.actor }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                }
+              }]
+            }'
