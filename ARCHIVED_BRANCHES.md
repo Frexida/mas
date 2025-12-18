@@ -1,5 +1,24 @@
 # Archived Branches
 
+## 2025-12-19 - Main Branch Established
+
+The following branches were archived after establishing the main branch:
+
+### Feature/Monorepo Branch
+- **Original**: `feature/monorepo`
+- **Status**: Fully merged into `main`
+- **Description**: Complete monorepo implementation with npm package support
+- **Key Features**:
+  - Monorepo structure with api/ and web/ workspaces
+  - npm package published as @frexida/mas v2.2.0
+  - --dev mode for integrated development environment
+- **Last Commit**: 4f4726e - feat: add --dev mode for integrated development environment
+
+### Local Development Branches
+- **init-agents**: Agent initialization features (deleted locally, merged to master)
+- **mas-unit**: Unit-based architecture (deleted locally, merged to master)
+- **multi-units**: Multi-unit support (deleted locally, merged to master)
+
 ## 2024-12-18 - Monorepo Migration
 
 The following branches were archived after the monorepo migration:
