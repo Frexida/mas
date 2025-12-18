@@ -22,41 +22,83 @@ app.post('/', async (c) => {
     const body = await c.req.json();
     const validated = MessageRequestSchema.parse(body);
 
+    // Process target (handle "agent-XX" format)
+    let target = validated.target;
+    if (target.startsWith('agent-')) {
+      target = target.replace('agent-', '');
+    }
+
     // Escape shell arguments
-    const target = validated.target.replace(/['"\\]/g, '\\$&');
+    target = target.replace(/['"\\]/g, '\\$&');
     const message = validated.message.replace(/['"\\]/g, '\\$&');
 
-    // Build command using mas_refactored.sh
-    let command = `${MAS_ROOT}/mas_refactored.sh send "${target}" "${message}"`;
+    // Use the session from the request
+    const sessionName = validated.session;
+
+    // Validate session exists
+    try {
+      const { stdout: sessionCheck } = await execAsync(`tmux has-session -t "${sessionName}" 2>/dev/null && echo "exists"`, {
+        shell: true
+      });
+
+      if (!sessionCheck.includes('exists')) {
+        const response: MessageResponse = {
+          status: 'failed',
+          timestamp: new Date().toISOString(),
+          target: validated.target,
+          error: `Session not found: ${sessionName}`
+        };
+        return c.json(response, 404);
+      }
+    } catch (checkError) {
+      const response: MessageResponse = {
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+        target: validated.target,
+        error: `Session not found: ${sessionName}`
+      };
+      return c.json(response, 404);
+    }
+
+    console.log('Using session:', sessionName);
+
+    // Build mas send command
+    let command = `${MAS_ROOT}/mas send "${target}" "${message}"`;
     if (validated.execute) {
       command += ' -e';
     }
 
-    // Debug: Log the actual command
     console.log('Executing command:', command);
     console.log('Execute flag:', validated.execute);
 
-    // Execute mas_refactored.sh send command
+    // Execute mas send command with specified session
     try {
       const { stdout, stderr } = await execAsync(command, {
         cwd: MAS_ROOT,
         timeout: 10000, // 10 second timeout
+        env: {
+          ...process.env,
+          MAS_SESSION_NAME: sessionName
+        }
       });
 
-      if (stderr && !stderr.includes('[INFO]') && !stderr.includes('[SUCCESS]')) {
-        console.warn('mas_refactored.sh stderr:', stderr);
+      // Debug: Log all output
+      console.log('mas send stdout:', stdout);
+      if (stderr) {
+        console.log('mas send stderr:', stderr);
       }
 
       const response: MessageResponse = {
         status: 'acknowledged',
         timestamp: new Date().toISOString(),
         target: validated.target,
+        session: sessionName,
         message: validated.message
       };
 
       return c.json(response, 200);
     } catch (execError: any) {
-      console.error('Failed to execute mas_refactored.sh:', execError);
+      console.error('Failed to execute mas send:', execError);
 
       const response: MessageResponse = {
         status: 'failed',

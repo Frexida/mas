@@ -173,6 +173,13 @@ start_agent() {
         "if [ -f WORKFLOW_INSTRUCTIONS.md ]; then echo ''; echo '=== ワークフロー指示書を確認してください ==='; echo 'WORKFLOW_INSTRUCTIONS.mdに役割と責任が記載されています'; echo ''; fi"
     sleep 0.3
 
+    # エージェント環境初期化（mas コマンドを利用可能にする）
+    local init_script="${LIB_DIR}/agent_init.sh"
+    if [ -f "$init_script" ]; then
+        send_to_pane "$session_name" "$window" "$pane" "source $init_script"
+        sleep 0.3
+    fi
+
     # clauded起動
     send_to_pane "$session_name" "$window" "$pane" "clauded --model $model"
 

@@ -41,6 +41,21 @@ generate_session_name() {
 
 # アクティブなセッションを検索
 find_active_session() {
+    # 環境変数が設定されている場合は、それを優先
+    if [ -n "$MAS_SESSION_NAME" ]; then
+        if tmux has-session -t "$MAS_SESSION_NAME" 2>/dev/null; then
+            echo "$MAS_SESSION_NAME"
+            return 0
+        fi
+    fi
+
+    # アタッチされているセッションを探す
+    local attached_session=$(tmux ls 2>/dev/null | grep "^mas-.*attached" | cut -d: -f1 | head -n 1)
+    if [ -n "$attached_session" ]; then
+        echo "$attached_session"
+        return 0
+    fi
+
     # tmuxセッション一覧から検索
     local sessions=$(tmux ls 2>/dev/null | grep "^mas-" | cut -d: -f1)
     if [ -n "$sessions" ]; then

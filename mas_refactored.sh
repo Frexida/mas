@@ -61,14 +61,16 @@ startオプション:
     --no-attach             起動後にアタッチしない
 
 sendオプション:
-    -e, --execute           メッセージ送信後にEnterを送信
+    -n, --no-execute        メッセージ送信のみ（Enterを送信しない）
+    -e, --execute           メッセージ送信後にEnterを送信（デフォルト）
 
 例:
     mas start                     # セッションを開始
     mas start --config cfg.json   # 設定ファイルを使用して開始
-    mas send 00 "Hello"           # Meta Managerにメッセージ送信
-    mas send design "Task"        # Designユニット全体に送信
-    mas send all "Broadcast"      # 全エージェントに送信
+    mas send 00 "Hello"           # Meta Managerにメッセージ送信して実行
+    mas send 00 "Hello" -n        # Meta Managerにメッセージ送信のみ
+    mas send design "Task"        # Designユニット全体に送信して実行
+    mas send all "Broadcast"      # 全エージェントに送信して実行
     mas status --detail           # 詳細な状態を表示
     mas attach -w development     # developmentウィンドウにアタッチ
     mas stop                      # セッションを停止
@@ -311,15 +313,22 @@ cmd_send() {
     shift 2
 
     if [ -z "$target" ] || [ -z "$message" ]; then
-        print_error "使用方法: mas send <target> <message> [-e]"
+        print_error "使用方法: mas send <target> <message> [-n|--no-execute]"
         return 1
     fi
 
     # オプション解析
-    local execute=false
+    # デフォルトで実行する（execute=true）
+    local execute=true
     while [[ $# -gt 0 ]]; do
         case $1 in
+            -n|--no-execute)
+                # 実行しない場合のオプション
+                execute=false
+                shift
+                ;;
             -e|--execute)
+                # 後方互換性のため残す
                 execute=true
                 shift
                 ;;
@@ -329,12 +338,42 @@ cmd_send() {
         esac
     done
 
-    # アクティブなセッションを検索
-    SESSION_NAME=$(find_active_session)
-    if [ $? -ne 0 ] || [ -z "$SESSION_NAME" ]; then
-        print_error "アクティブなセッションが見つかりません"
-        print_info "まず 'mas start' でセッションを開始してください"
-        return 1
+    # セッションの優先順位:
+    # 1. 現在のtmuxセッション（tmux内で実行している場合）
+    # 2. MAS_SESSION_NAME環境変数
+    # 3. find_active_sessionで検索
+
+    if [ -n "$TMUX" ]; then
+        # tmux内で実行されている場合、現在のセッションを最優先
+        local current_session=$(tmux display-message -p '#S' 2>/dev/null)
+        if [ -n "$current_session" ] && [[ "$current_session" == mas-* ]]; then
+            SESSION_NAME="$current_session"
+            # デバッグ情報（必要に応じてコメントアウト）
+            # print_info "現在のtmuxセッションを使用: $SESSION_NAME"
+        else
+            # masセッションではない場合、環境変数またはfind_active_sessionを使用
+            if [ -n "$MAS_SESSION_NAME" ]; then
+                SESSION_NAME="$MAS_SESSION_NAME"
+            else
+                SESSION_NAME=$(find_active_session)
+                if [ $? -ne 0 ] || [ -z "$SESSION_NAME" ]; then
+                    print_error "アクティブなMASセッションが見つかりません"
+                    print_info "まず 'mas start' でセッションを開始してください"
+                    return 1
+                fi
+            fi
+        fi
+    elif [ -n "$MAS_SESSION_NAME" ]; then
+        # tmux外から実行され、環境変数が設定されている場合
+        SESSION_NAME="$MAS_SESSION_NAME"
+    else
+        # tmux外から実行され、環境変数もない場合、アクティブなセッションを検索
+        SESSION_NAME=$(find_active_session)
+        if [ $? -ne 0 ] || [ -z "$SESSION_NAME" ]; then
+            print_error "アクティブなセッションが見つかりません"
+            print_info "まず 'mas start' でセッションを開始してください"
+            return 1
+        fi
     fi
 
     # SESSION_NAMEをエクスポート（モジュールで使用するため）

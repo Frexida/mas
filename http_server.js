@@ -33,8 +33,24 @@ http.createServer((req, res) => {
       res.writeHead(200, {'Content-Type': 'application/json'});
       res.end(JSON.stringify({status: 'acknowledged', target, timestamp: new Date().toISOString()}));
 
-      const args = ['-t', target, ...(execute ? ['-e'] : []), message];
-      spawn(SEND_MESSAGE, args, {detached: true, stdio: 'ignore'}).unref();
+      const args = ['-p', target, ...(execute ? ['-e'] : []), message];
+      console.log(`Executing: ${SEND_MESSAGE} ${args.join(' ')}`);
+      const child = spawn(SEND_MESSAGE, args, {detached: true, stdio: ['ignore', 'pipe', 'pipe']});
+
+      // デバッグ用: stdoutとstderrをログ出力
+      child.stdout?.on('data', (data) => {
+        console.log(`[send_message stdout]: ${data}`);
+      });
+
+      child.stderr?.on('data', (data) => {
+        console.error(`[send_message stderr]: ${data}`);
+      });
+
+      child.on('error', (error) => {
+        console.error(`[send_message error]: ${error.message}`);
+      });
+
+      child.unref();
     } catch (e) {
       res.writeHead(400, {'Content-Type': 'application/json'});
       res.end(JSON.stringify({error: e.message}));
