@@ -85,10 +85,25 @@ app.post('/', async (c) => {
 
       // Process meta manager if present
       if (validated.agents.metaManager) {
-        const metaCmd = `${MAS_ROOT}/mas send "00" "${validated.agents.metaManager.prompt}" -e`;
+        const escapedPrompt = validated.agents.metaManager.prompt
+          .replace(/\\/g, '\\\\')
+          .replace(/"/g, '\\"')
+          .replace(/\$/g, '\\$')
+          .replace(/`/g, '\\`')
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r')
+          .replace(/\t/g, '\\t');
+        const metaCmd = `${MAS_ROOT}/mas send "00" "$(echo -e "${escapedPrompt}")" -e`;
         console.log('Sending to meta manager:', metaCmd);
         try {
-          await execAsync(metaCmd, { cwd: MAS_ROOT, timeout: 5000 });
+          await execAsync(metaCmd, {
+            cwd: MAS_ROOT,
+            timeout: 5000,
+            env: {
+              ...process.env,
+              MAS_SESSION_NAME: tmuxSession
+            }
+          });
         } catch (err) {
           console.warn('Failed to initialize meta manager:', err);
         }
@@ -98,10 +113,25 @@ app.post('/', async (c) => {
       for (const unit of validated.agents.units) {
         // Initialize manager
         if (unit.manager) {
-          const managerCmd = `${MAS_ROOT}/mas send "${unit.manager.id}" "${unit.manager.prompt}" -e`;
+          const escapedPrompt = unit.manager.prompt
+            .replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"')
+            .replace(/\$/g, '\\$')
+            .replace(/`/g, '\\`')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t');
+          const managerCmd = `${MAS_ROOT}/mas send "${unit.manager.id}" "$(echo -e "${escapedPrompt}")" -e`;
           console.log('Sending to manager:', managerCmd);
           try {
-            await execAsync(managerCmd, { cwd: MAS_ROOT, timeout: 5000 });
+            await execAsync(managerCmd, {
+              cwd: MAS_ROOT,
+              timeout: 5000,
+              env: {
+                ...process.env,
+                MAS_SESSION_NAME: tmuxSession
+              }
+            });
             await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between messages
           } catch (err) {
             console.warn(`Failed to initialize manager ${unit.manager.id}:`, err);
@@ -110,10 +140,25 @@ app.post('/', async (c) => {
 
         // Initialize workers
         for (const worker of unit.workers) {
-          const workerCmd = `${MAS_ROOT}/mas send "${worker.id}" "${worker.prompt}" -e`;
+          const escapedPrompt = worker.prompt
+            .replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"')
+            .replace(/\$/g, '\\$')
+            .replace(/`/g, '\\`')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t');
+          const workerCmd = `${MAS_ROOT}/mas send "${worker.id}" "$(echo -e "${escapedPrompt}")" -e`;
           console.log('Sending to worker:', workerCmd);
           try {
-            await execAsync(workerCmd, { cwd: MAS_ROOT, timeout: 5000 });
+            await execAsync(workerCmd, {
+              cwd: MAS_ROOT,
+              timeout: 5000,
+              env: {
+                ...process.env,
+                MAS_SESSION_NAME: tmuxSession
+              }
+            });
             await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between messages
           } catch (err) {
             console.warn(`Failed to initialize worker ${worker.id}:`, err);
