@@ -75,7 +75,7 @@ export const AgentConfigurator: React.FC<AgentConfiguratorProps> = ({ onSubmitSu
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="w-full h-full">
       {!sessionData ? (
         <form onSubmit={handleSubmit} className="p-6">
           <div className="flex justify-between items-center mb-6">

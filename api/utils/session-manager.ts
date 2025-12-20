@@ -22,7 +22,13 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const MAS_ROOT = path.resolve(__dirname, '../../');
+
+// 新構造: ワークスペースルートを環境変数から取得、またはカレントディレクトリを使用
+const MAS_WORKSPACE_ROOT = process.env.MAS_WORKSPACE_ROOT ||
+                          process.env.MAS_PROJECT_ROOT ||
+                          process.cwd();
+// 後方互換性のためMAS_ROOTを維持
+const MAS_ROOT = MAS_WORKSPACE_ROOT;
 
 // Legacy function removed - no longer reading .mas_session files
 

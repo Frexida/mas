@@ -12,13 +12,9 @@ if [ -n "$MAS_NPM_VERSION" ] && [ -n "$MAS_HOME" ]; then
     LIB_DIR="$MAS_HOME/lib"
     VERSION="${MAS_NPM_VERSION}"
 
-    # ユーザーホームにデータディレクトリを作成
-    MAS_DATA_DIR="${MAS_DATA_DIR:-$HOME/.mas}"
-    if [ ! -d "$MAS_DATA_DIR" ]; then
-        mkdir -p "$MAS_DATA_DIR/sessions"
-        mkdir -p "$MAS_DATA_DIR/workflows"
-        mkdir -p "$MAS_DATA_DIR/unit"
-    fi
+    # ワークスペースルートはプロジェクトディレクトリ
+    # MAS_DATA_DIR は廃止、後方互換性のために空に設定
+    MAS_DATA_DIR=""
 
     # npm版のパスを設定
     export MAS_INSTALL_TYPE="npm"
@@ -30,7 +26,8 @@ else
     fi
     SCRIPT_DIR="$( cd "$( dirname "$SCRIPT_PATH" )" && pwd )"
     LIB_DIR="$SCRIPT_DIR/lib"
-    MAS_DATA_DIR="${MAS_DATA_DIR:-$HOME/.mas}"  # データは ~/.mas に保存
+    # MAS_DATA_DIR は廃止、後方互換性のために空に設定
+    MAS_DATA_DIR=""
     VERSION="2.1.0-refactored"
     export MAS_INSTALL_TYPE="local"
 fi
@@ -123,12 +120,23 @@ cmd_init() {
 
     print_info "MASプロジェクト '$project_name' を初期化中..."
 
-    # ディレクトリ作成
-    mkdir -p unit workflows .mas
+    # プロジェクトディレクトリ構造を作成（.masプレフィックスなし）
+    mkdir -p unit workflows sessions templates logs config
 
-    # .masrcファイル作成（プロジェクトマーカー）
+    # config.jsonを作成（旧.mas/config.jsonの内容）
+    cat > config.json <<EOF
+{
+  "version": "1.0.0",
+  "projectName": "$project_name",
+  "createdAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "workspaceRoot": "$PWD"
+}
+EOF
+
+    # .masrcファイル作成（プロジェクトマーカー、互換性のため維持）
     echo "# MAS Project Configuration" > .masrc
     echo "PROJECT_NAME=\"$project_name\"" >> .masrc
+    echo "WORKSPACE_ROOT=\"$PWD\"" >> .masrc
 
     # プロジェクト設定を保存
     if command -v save_project_config &> /dev/null; then
@@ -210,31 +218,50 @@ initialize_agents_from_config() {
 cmd_start() {
     print_info "=== MAS Infrastructure Startup ==="
 
-    # MAS_DATA_DIRを確認
-    mkdir -p "$MAS_DATA_DIR"
+    # ワークスペースルートを取得
+    local workspace_root="${MAS_WORKSPACE_ROOT:-${PROJECT_ROOT:-$PWD}}"
+
+    # 後方互換性チェック: 旧構造の検出
+    if [ -d "$HOME/.mas" ] && [ ! -f "$workspace_root/config.json" ]; then
+        print_warning "Legacy ~/.mas directory detected. Consider migrating to new structure."
+        print_info "Run 'mas init' in your project directory to use the new workspace structure."
+    fi
+
+    # ワークスペースが初期化されているか確認
+    if [ ! -f "$workspace_root/.masrc" ] && [ ! -f "$workspace_root/config.json" ]; then
+        print_error "No MAS project found in current directory."
+        print_info "Run 'mas init --name <project-name>' to initialize a project."
+        return 1
+    fi
+
+    mkdir -p "$workspace_root/logs"
 
     # APIサーバーを起動
     if [ -d "$SCRIPT_DIR/api" ]; then
         # Check if API is already running
-        if [ -f "$MAS_DATA_DIR/api.pid" ]; then
-            local api_pid=$(cat "$MAS_DATA_DIR/api.pid")
+        if [ -f "$workspace_root/api.pid" ]; then
+            local api_pid=$(cat "$workspace_root/api.pid")
             if ps -p "$api_pid" > /dev/null 2>&1; then
                 print_info "API server is already running (PID: $api_pid)"
             else
-                rm -f "$MAS_DATA_DIR/api.pid"
+                rm -f "$workspace_root/api.pid"
                 print_info "Starting API server (port 8765)..."
                 cd "$SCRIPT_DIR/api"
-                nohup npm start > "$MAS_DATA_DIR/api.log" 2>&1 &
+                export MAS_WORKSPACE_ROOT="$workspace_root"
+                export MAS_PROJECT_ROOT="$workspace_root"
+                nohup npm start > "$workspace_root/api.log" 2>&1 &
                 local api_pid=$!
-                echo "$api_pid" > "$MAS_DATA_DIR/api.pid"
+                echo "$api_pid" > "$workspace_root/api.pid"
                 cd - > /dev/null
             fi
         else
             print_info "Starting API server (port 8765)..."
             cd "$SCRIPT_DIR/api"
-            nohup npm start > "$MAS_DATA_DIR/api.log" 2>&1 &
+            export MAS_WORKSPACE_ROOT="$workspace_root"
+            export MAS_PROJECT_ROOT="$workspace_root"
+            nohup npm start > "$workspace_root/api.log" 2>&1 &
             local api_pid=$!
-            echo "$api_pid" > "$MAS_DATA_DIR/api.pid"
+            echo "$api_pid" > "$workspace_root/api.pid"
             cd - > /dev/null
         fi
     else
@@ -245,25 +272,25 @@ cmd_start() {
     # WebUIを起動
     if [ -d "$SCRIPT_DIR/web" ]; then
         # Check if WebUI is already running
-        if [ -f "$MAS_DATA_DIR/web.pid" ]; then
-            local web_pid=$(cat "$MAS_DATA_DIR/web.pid")
+        if [ -f "$workspace_root/web.pid" ]; then
+            local web_pid=$(cat "$workspace_root/web.pid")
             if ps -p "$web_pid" > /dev/null 2>&1; then
                 print_info "WebUI is already running (PID: $web_pid)"
             else
-                rm -f "$MAS_DATA_DIR/web.pid"
+                rm -f "$workspace_root/web.pid"
                 print_info "Starting WebUI (port 5173)..."
                 cd "$SCRIPT_DIR/web"
-                nohup npm run dev > "$MAS_DATA_DIR/web.log" 2>&1 &
+                nohup npm run dev > "$workspace_root/web.log" 2>&1 &
                 local web_pid=$!
-                echo "$web_pid" > "$MAS_DATA_DIR/web.pid"
+                echo "$web_pid" > "$workspace_root/web.pid"
                 cd - > /dev/null
             fi
         else
             print_info "Starting WebUI (port 5173)..."
             cd "$SCRIPT_DIR/web"
-            nohup npm run dev > "$MAS_DATA_DIR/web.log" 2>&1 &
+            nohup npm run dev > "$workspace_root/web.log" 2>&1 &
             local web_pid=$!
-            echo "$web_pid" > "$MAS_DATA_DIR/web.pid"
+            echo "$web_pid" > "$workspace_root/web.pid"
             cd - > /dev/null
         fi
     else
@@ -278,15 +305,15 @@ cmd_start() {
     local api_running=false
     local web_running=false
 
-    if [ -f "$MAS_DATA_DIR/api.pid" ]; then
-        local api_pid=$(cat "$MAS_DATA_DIR/api.pid")
+    if [ -f "$workspace_root/api.pid" ]; then
+        local api_pid=$(cat "$workspace_root/api.pid")
         if kill -0 $api_pid 2>/dev/null; then
             api_running=true
         fi
     fi
 
-    if [ -f "$MAS_DATA_DIR/web.pid" ]; then
-        local web_pid=$(cat "$MAS_DATA_DIR/web.pid")
+    if [ -f "$workspace_root/web.pid" ]; then
+        local web_pid=$(cat "$workspace_root/web.pid")
         if kill -0 $web_pid 2>/dev/null; then
             web_running=true
         fi
@@ -301,8 +328,8 @@ cmd_start() {
     else
         print_error "Failed to start infrastructure"
         print_info "Check logs for details:"
-        print_info "  API: $MAS_DATA_DIR/api.log"
-        print_info "  Web: $MAS_DATA_DIR/web.log"
+        print_info "  API: $workspace_root/api.log"
+        print_info "  Web: $workspace_root/web.log"
         return 1
     fi
 }
@@ -428,28 +455,30 @@ cmd_status() {
 cmd_stop() {
     print_info "Stopping MAS infrastructure..."
 
+    # ワークスペースルートを取得
+    local workspace_root="${MAS_WORKSPACE_ROOT:-${PROJECT_ROOT:-$PWD}}"
     local stopped_something=false
 
     # Stop API server
-    if [ -f "$MAS_DATA_DIR/api.pid" ]; then
-        local api_pid=$(cat "$MAS_DATA_DIR/api.pid")
+    if [ -f "$workspace_root/api.pid" ]; then
+        local api_pid=$(cat "$workspace_root/api.pid")
         if ps -p "$api_pid" > /dev/null 2>&1; then
             print_info "Stopping API server (PID: $api_pid)..."
             kill "$api_pid" 2>/dev/null || true
             stopped_something=true
         fi
-        rm -f "$MAS_DATA_DIR/api.pid"
+        rm -f "$workspace_root/api.pid"
     fi
 
     # Stop WebUI
-    if [ -f "$MAS_DATA_DIR/web.pid" ]; then
-        local web_pid=$(cat "$MAS_DATA_DIR/web.pid")
+    if [ -f "$workspace_root/web.pid" ]; then
+        local web_pid=$(cat "$workspace_root/web.pid")
         if ps -p "$web_pid" > /dev/null 2>&1; then
             print_info "Stopping WebUI (PID: $web_pid)..."
             kill "$web_pid" 2>/dev/null || true
             stopped_something=true
         fi
-        rm -f "$MAS_DATA_DIR/web.pid"
+        rm -f "$workspace_root/web.pid"
     fi
 
     if [ "$stopped_something" = true ]; then

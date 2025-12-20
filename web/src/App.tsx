@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { AgentConfigurator } from './components/AgentConfigurator';
 import { SessionOutputDisplay } from './components/SessionOutputDisplay';
@@ -7,12 +8,67 @@ import ApiSettings from './components/ApiSettings';
 import type { RunsResponse, ErrorResponse } from './types/masApi';
 import { testApiConnection } from './services/masApi';
 
-type ViewMode = 'create' | 'select' | 'session';
+// セッション選択ページコンポーネント
+function SessionSelectorPage({ onSessionSelected }: { onSessionSelected: (session: RunsResponse) => void }) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="w-full h-full">
+      <SessionSelector
+        onSessionSelected={(session) => {
+          onSessionSelected(session);
+          navigate('/session');
+        }}
+        onCreateNew={() => {
+          navigate('/create-session');
+        }}
+      />
+    </div>
+  );
+}
+
+// セッション作成ページコンポーネント
+function CreateSessionPage({ onSubmitSuccess }: { onSubmitSuccess: (response: RunsResponse | ErrorResponse) => void }) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="w-full h-full overflow-y-auto">
+      <AgentConfigurator
+        onSubmitSuccess={(apiResponse) => {
+          onSubmitSuccess(apiResponse);
+          navigate('/session');
+        }}
+        onBack={() => {
+          navigate('/');
+        }}
+      />
+    </div>
+  );
+}
+
+// セッション表示ページコンポーネント
+function SessionPage({ response, onReset }: { response: RunsResponse | ErrorResponse | null; onReset: () => void }) {
+  const navigate = useNavigate();
+
+  if (!response) {
+    return <Navigate to="/" replace />;
+  }
+
+  return (
+    <div className="w-full h-full">
+      <SessionOutputDisplay
+        response={response}
+        onReset={() => {
+          onReset();
+          navigate('/');
+        }}
+      />
+    </div>
+  );
+}
 
 function App() {
   const [response, setResponse] = useState<RunsResponse | ErrorResponse | null>(null);
-  const [showOutput, setShowOutput] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('select');
   const [apiStatus, setApiStatus] = useState<{
     checking: boolean;
     connected: boolean;
@@ -42,79 +98,67 @@ function App() {
     }
   };
 
-  const handleSubmitSuccess = (apiResponse: RunsResponse | ErrorResponse) => {
-    setResponse(apiResponse);
-    setShowOutput(true);
-    setViewMode('session');
-  };
-
   const handleSessionSelected = (session: RunsResponse) => {
     setResponse(session);
-    setShowOutput(true);
-    setViewMode('session');
   };
 
-  const handleCreateNew = () => {
-    setViewMode('create');
-    setShowOutput(false);
-    setResponse(null);
-  };
-
-  const handleBackToSelect = () => {
-    setViewMode('select');
-    setShowOutput(false);
-    setResponse(null);
+  const handleSubmitSuccess = (apiResponse: RunsResponse | ErrorResponse) => {
+    setResponse(apiResponse);
   };
 
   const handleReset = () => {
     setResponse(null);
-    setShowOutput(false);
-    setViewMode('select');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
+    <Router>
+      <div className="h-screen flex flex-col bg-gray-50">
+        <Header />
 
-      {/* API Status Banner */}
-      {!apiStatus.checking && !apiStatus.connected && (
-        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <p className="text-sm text-yellow-800">
-              {apiStatus.message}
-            </p>
-            <button
-              onClick={checkApiConnection}
-              className="text-sm text-yellow-700 hover:text-yellow-900 underline"
-            >
-              Retry Connection
-            </button>
+        {/* API Status Banner */}
+        {!apiStatus.checking && !apiStatus.connected && (
+          <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3 flex-shrink-0">
+            <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+              <p className="text-sm text-yellow-800">
+                {apiStatus.message}
+              </p>
+              <button
+                onClick={checkApiConnection}
+                className="text-sm text-yellow-700 hover:text-yellow-900 underline"
+              >
+                Retry Connection
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <main>
-        {viewMode === 'select' && (
-          <SessionSelector
-            onSessionSelected={handleSessionSelected}
-            onCreateNew={handleCreateNew}
-          />
-        )}
-        {viewMode === 'create' && (
-          <AgentConfigurator
-            onSubmitSuccess={handleSubmitSuccess}
-            onBack={handleBackToSelect}
-          />
-        )}
-        {viewMode === 'session' && showOutput && (
-          <SessionOutputDisplay
-            response={response}
-            onReset={handleReset}
-          />
-        )}
-      </main>
-      <ApiSettings />
-    </div>
+        <main className="flex-grow overflow-hidden">
+          <Routes>
+            {/* メインページ - セッション選択 */}
+            <Route
+              path="/"
+              element={<SessionSelectorPage onSessionSelected={handleSessionSelected} />}
+            />
+
+            {/* セッション作成ページ */}
+            <Route
+              path="/create-session"
+              element={<CreateSessionPage onSubmitSuccess={handleSubmitSuccess} />}
+            />
+
+            {/* セッション出力表示ページ */}
+            <Route
+              path="/session"
+              element={<SessionPage response={response} onReset={handleReset} />}
+            />
+
+            {/* デフォルトルート */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+        <ApiSettings />
+      </div>
+    </Router>
   );
 }
 
