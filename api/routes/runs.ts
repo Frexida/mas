@@ -14,6 +14,12 @@ const app = new Hono();
 // Get the directory of the current module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// 新構造: ワークスペースルートを環境変数から取得
+const MAS_WORKSPACE_ROOT = process.env.MAS_WORKSPACE_ROOT ||
+                          process.env.MAS_PROJECT_ROOT ||
+                          process.cwd();
+// 後方互換性のためMAS_ROOTを維持（スクリプトパス用）
 const MAS_ROOT = path.resolve(__dirname, '../../');
 
 // Generate a unique session ID (UUID v4 format)
@@ -45,8 +51,8 @@ app.post('/', async (c) => {
     // Generate session ID
     const sessionId = generateSessionId();
 
-    // Always create isolated session workspace
-    const sessionDir = path.join(MAS_ROOT, 'sessions', sessionId);
+    // Always create isolated session workspace (新構造: ワークスペース内)
+    const sessionDir = path.join(MAS_WORKSPACE_ROOT, 'sessions', sessionId);
     const unitDir = path.join(sessionDir, 'unit');
     const workflowsDir = path.join(sessionDir, 'workflows');
     const configPath = path.join('/tmp', `mas-config-${sessionId}.json`);

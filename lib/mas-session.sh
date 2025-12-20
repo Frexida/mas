@@ -346,10 +346,11 @@ generate_uuid() {
 create_session_workspace() {
     local session_id="$1"
     local config_file="${2:-}"
-    local mas_root="${MAS_ROOT:-$SCRIPT_DIR}"
+    # 新構造: ワークスペースルートを使用
+    local workspace_root="${MAS_WORKSPACE_ROOT:-${PROJECT_ROOT:-$PWD}}"
 
     # Create session directory structure
-    local session_dir="$mas_root/sessions/$session_id"
+    local session_dir="$workspace_root/sessions/$session_id"
 
     if [ -d "$session_dir" ]; then
         print_error "Session workspace already exists: $session_dir" >&2
@@ -373,9 +374,10 @@ create_session_workspace() {
 # Initialize session units from templates
 initialize_session_units() {
     local session_dir="$1"
-    local mas_root="${MAS_ROOT:-$SCRIPT_DIR}"
-    local template_unit_dir="$mas_root/unit"
-    local template_workflows_dir="$mas_root/workflows"
+    # 新構造: ワークスペースルートを使用
+    local workspace_root="${MAS_WORKSPACE_ROOT:-${PROJECT_ROOT:-$PWD}}"
+    local template_unit_dir="$workspace_root/unit"
+    local template_workflows_dir="$workspace_root/workflows"
 
     if [ ! -d "$session_dir" ]; then
         print_error "Session directory does not exist: $session_dir" >&2
@@ -430,8 +432,9 @@ EOF
 # Load session metadata
 load_session_metadata() {
     local session_id="$1"
-    local mas_root="${MAS_ROOT:-$SCRIPT_DIR}"
-    local session_dir="$mas_root/sessions/$session_id"
+    # 新構造: ワークスペースルートを使用
+    local workspace_root="${MAS_WORKSPACE_ROOT:-${PROJECT_ROOT:-$PWD}}"
+    local session_dir="$workspace_root/sessions/$session_id"
     local metadata_file="$session_dir/.session"
 
     if [ ! -f "$metadata_file" ]; then
@@ -449,8 +452,9 @@ load_session_metadata() {
 update_sessions_index() {
     local action="$1"  # add, update, remove
     local session_id="$2"
-    local mas_root="${MAS_ROOT:-$SCRIPT_DIR}"
-    local index_file="$mas_root/sessions/.sessions.index"
+    # 新構造: ワークスペースルートを使用
+    local workspace_root="${MAS_WORKSPACE_ROOT:-${PROJECT_ROOT:-$PWD}}"
+    local index_file="$workspace_root/sessions/.sessions.index"
 
     # Ensure jq is available
     if ! command -v jq &> /dev/null; then
@@ -462,7 +466,7 @@ update_sessions_index() {
 
     case "$action" in
         add)
-            local session_dir="$mas_root/sessions/$session_id"
+            local session_dir="$workspace_root/sessions/$session_id"
             local tmux_session="mas-${session_id:0:8}"
             local status="${3:-active}"
 

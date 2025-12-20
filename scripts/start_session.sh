@@ -32,12 +32,12 @@ print_info() { echo "[INFO] $*"; }
 print_error() { echo "[ERROR] $*" >&2; }
 print_success() { echo "[SUCCESS] $*"; }
 
-# MASデータディレクトリ
-MAS_DATA_DIR="${MAS_DATA_DIR:-$HOME/.mas}"
-mkdir -p "$MAS_DATA_DIR/sessions"
+# ワークスペースルートを取得
+MAS_WORKSPACE_ROOT="${MAS_WORKSPACE_ROOT:-${PROJECT_ROOT:-$PWD}}"
+mkdir -p "$MAS_WORKSPACE_ROOT/sessions"
 
 # セッションワークスペースの作成
-SESSION_DIR="$MAS_DATA_DIR/sessions/$SESSION_ID"
+SESSION_DIR="$MAS_WORKSPACE_ROOT/sessions/$SESSION_ID"
 mkdir -p "$SESSION_DIR/unit"
 mkdir -p "$SESSION_DIR/workflows"
 
@@ -74,7 +74,7 @@ cat > "$SESSION_DIR/metadata.json" <<EOF
 EOF
 
 # セッションインデックスを更新
-SESSIONS_INDEX="$MAS_DATA_DIR/sessions/.index"
+SESSIONS_INDEX="$MAS_WORKSPACE_ROOT/sessions/.index"
 echo "$SESSION_ID:active:$(date +%s)" >> "$SESSIONS_INDEX"
 
 print_info "Creating session: $MAS_SESSION_NAME"

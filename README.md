@@ -100,8 +100,35 @@ mas --version
 
 ## 使い方
 
+### プロジェクトの初期化
+```bash
+# 新しいプロジェクトディレクトリを作成
+mkdir my-mas-project
+cd my-mas-project
+
+# MASプロジェクトを初期化
+mas init --name myproject
+```
+
+これにより、以下のディレクトリ構造が作成されます：
+```
+my-mas-project/
+├── config.json        # プロジェクト設定
+├── sessions/          # セッション管理
+├── unit/              # エージェントテンプレート
+├── workflows/         # ワークフローテンプレート
+├── logs/              # ログファイル
+├── templates/         # その他のテンプレート
+├── api.log, api.pid   # APIサーバー管理ファイル
+├── web.log, web.pid   # Webサーバー管理ファイル
+└── .masrc            # プロジェクトマーカー
+```
+
 ### 基本的な起動
 ```bash
+# プロジェクトディレクトリから起動
+cd my-mas-project
+
 # インフラストラクチャを起動（API + WebUI）
 mas start
 
