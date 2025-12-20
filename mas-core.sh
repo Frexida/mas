@@ -464,7 +464,8 @@ cmd_stop() {
         local api_pid=$(cat "$workspace_root/api.pid")
         if ps -p "$api_pid" > /dev/null 2>&1; then
             print_info "Stopping API server (PID: $api_pid)..."
-            kill "$api_pid" 2>/dev/null || true
+            # プロセスグループ全体を終了
+            kill -- -$(ps -o pgid= $api_pid | grep -o '[0-9]*') 2>/dev/null || kill "$api_pid" 2>/dev/null || true
             stopped_something=true
         fi
         rm -f "$workspace_root/api.pid"
@@ -475,13 +476,51 @@ cmd_stop() {
         local web_pid=$(cat "$workspace_root/web.pid")
         if ps -p "$web_pid" > /dev/null 2>&1; then
             print_info "Stopping WebUI (PID: $web_pid)..."
-            kill "$web_pid" 2>/dev/null || true
+            # プロセスグループ全体を終了
+            kill -- -$(ps -o pgid= $web_pid | grep -o '[0-9]*') 2>/dev/null || kill "$web_pid" 2>/dev/null || true
             stopped_something=true
         fi
         rm -f "$workspace_root/web.pid"
     fi
 
+    # 孤立したMAS関連のプロセスをクリーンアップ
+    # APIサーバー関連
+    local api_pids=$(ps aux | grep -E "node.*$SCRIPT_DIR/api/server" | grep -v grep | awk '{print $2}')
+    if [ -n "$api_pids" ]; then
+        print_info "Cleaning up orphaned API processes..."
+        for pid in $api_pids; do
+            kill "$pid" 2>/dev/null || true
+        done
+        stopped_something=true
+    fi
+
+    # WebUI関連（Viteプロセス）
+    local web_pids=$(ps aux | grep -E "node.*$SCRIPT_DIR/web.*vite|npm run dev.*$SCRIPT_DIR/web" | grep -v grep | awk '{print $2}')
+    if [ -n "$web_pids" ]; then
+        print_info "Cleaning up orphaned WebUI processes..."
+        for pid in $web_pids; do
+            # プロセスグループ全体を終了
+            kill -- -$(ps -o pgid= $pid | grep -o '[0-9]*') 2>/dev/null || kill "$pid" 2>/dev/null || true
+        done
+        stopped_something=true
+    fi
+
+    # PIDファイルをクリーンアップ
+    rm -f "$workspace_root/api.pid" "$workspace_root/web.pid"
+
     if [ "$stopped_something" = true ]; then
+        # 少し待って確実に終了させる
+        sleep 1
+
+        # それでも残っているプロセスを強制終了
+        local remaining_pids=$(ps aux | grep -E "node.*$SCRIPT_DIR/(api|web)" | grep -v grep | awk '{print $2}')
+        if [ -n "$remaining_pids" ]; then
+            print_info "Force stopping remaining processes..."
+            for pid in $remaining_pids; do
+                kill -9 "$pid" 2>/dev/null || true
+            done
+        fi
+
         print_success "MAS infrastructure stopped"
     else
         print_info "No infrastructure processes were running"
