@@ -247,6 +247,8 @@ cmd_start() {
                 rm -f "$workspace_root/api.pid"
                 print_info "Starting API server (port 8765)..."
                 cd "$SCRIPT_DIR/api"
+                export MAS_WORKSPACE_ROOT="$workspace_root"
+                export MAS_PROJECT_ROOT="$workspace_root"
                 nohup npm start > "$workspace_root/api.log" 2>&1 &
                 local api_pid=$!
                 echo "$api_pid" > "$workspace_root/api.pid"
@@ -255,8 +257,9 @@ cmd_start() {
         else
             print_info "Starting API server (port 8765)..."
             cd "$SCRIPT_DIR/api"
-            MAS_WORKSPACE_ROOT="$workspace_root" MAS_PROJECT_ROOT="$workspace_root" \
-                nohup npm start > "$workspace_root/api.log" 2>&1 &
+            export MAS_WORKSPACE_ROOT="$workspace_root"
+            export MAS_PROJECT_ROOT="$workspace_root"
+            nohup npm start > "$workspace_root/api.log" 2>&1 &
             local api_pid=$!
             echo "$api_pid" > "$workspace_root/api.pid"
             cd - > /dev/null

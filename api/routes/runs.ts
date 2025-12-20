@@ -71,7 +71,9 @@ app.post('/', async (c) => {
         env: {
           ...process.env,
           MAS_SESSION_ID: sessionId,
-          MAS_SESSION_NAME: `mas-${sessionId.substring(0, 8)}`
+          MAS_SESSION_NAME: `mas-${sessionId.substring(0, 8)}`,
+          MAS_WORKSPACE_ROOT: MAS_WORKSPACE_ROOT,
+          MAS_PROJECT_ROOT: MAS_WORKSPACE_ROOT
         }
       });
 
@@ -107,7 +109,9 @@ app.post('/', async (c) => {
             timeout: 5000,
             env: {
               ...process.env,
-              MAS_SESSION_NAME: tmuxSession
+              MAS_SESSION_NAME: tmuxSession,
+              MAS_WORKSPACE_ROOT: MAS_WORKSPACE_ROOT,
+              MAS_PROJECT_ROOT: MAS_WORKSPACE_ROOT
             }
           });
         } catch (err) {
@@ -135,7 +139,9 @@ app.post('/', async (c) => {
               timeout: 5000,
               env: {
                 ...process.env,
-                MAS_SESSION_NAME: tmuxSession
+                MAS_SESSION_NAME: tmuxSession,
+                MAS_WORKSPACE_ROOT: MAS_WORKSPACE_ROOT,
+                MAS_PROJECT_ROOT: MAS_WORKSPACE_ROOT
               }
             });
             await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between messages
@@ -162,7 +168,9 @@ app.post('/', async (c) => {
               timeout: 5000,
               env: {
                 ...process.env,
-                MAS_SESSION_NAME: tmuxSession
+                MAS_SESSION_NAME: tmuxSession,
+                MAS_WORKSPACE_ROOT: MAS_WORKSPACE_ROOT,
+                MAS_PROJECT_ROOT: MAS_WORKSPACE_ROOT
               }
             });
             await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between messages
