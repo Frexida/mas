@@ -22,7 +22,13 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const MAS_ROOT = path.resolve(__dirname, '../../');
+
+// 新構造: ワークスペースルートを環境変数から取得、またはカレントディレクトリを使用
+const MAS_WORKSPACE_ROOT = process.env.MAS_WORKSPACE_ROOT ||
+                          process.env.MAS_PROJECT_ROOT ||
+                          process.cwd();
+// 後方互換性のためMAS_ROOTを維持
+const MAS_ROOT = MAS_WORKSPACE_ROOT;
 
 // Legacy function removed - no longer reading .mas_session files
 
@@ -183,11 +189,26 @@ export async function connectToSession(
 ): Promise<ConnectionInfo> {
   // Find the tmux session
   const tmuxSessions = await listTmuxSessions();
-  const tmuxSessionName = tmuxSessions.find(name =>
-    name.includes(sessionId) || parseSessionId(name) === sessionId
-  );
+
+  console.log('Looking for session:', sessionId);
+  console.log('Available tmux sessions:', tmuxSessions);
+
+  // Match by either full UUID or first 8 characters
+  const sessionIdShort = sessionId.substring(0, 8);
+  const tmuxSessionName = tmuxSessions.find(name => {
+    // Check if it matches the pattern mas-XXXXXXXX
+    if (name.startsWith('mas-')) {
+      const nameId = name.substring(4); // Remove 'mas-' prefix
+      console.log(`Comparing: nameId="${nameId}" with sessionId="${sessionId}" and sessionIdShort="${sessionIdShort}"`);
+      // Match either full UUID or short form
+      return nameId === sessionId || nameId === sessionIdShort ||
+             sessionId.startsWith(nameId) || nameId.startsWith(sessionIdShort);
+    }
+    return false;
+  });
 
   if (!tmuxSessionName) {
+    console.error('Session not found in tmux sessions');
     throw new Error('Session not found');
   }
 

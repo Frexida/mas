@@ -31,11 +31,23 @@ find_project_root() {
 is_project_initialized() {
     local project_dir="${1:-$PWD}"
 
-    # 必須ファイル・ディレクトリの存在チェック
-    [ -f "$project_dir/.masrc" ] && \
-    [ -d "$project_dir/.mas" ] && \
-    [ -d "$project_dir/unit" ] && \
-    [ -d "$project_dir/workflows" ]
+    # 新構造の確認（.masディレクトリは不要）
+    if [ -f "$project_dir/config.json" ] && \
+       [ -d "$project_dir/sessions" ] && \
+       [ -d "$project_dir/unit" ] && \
+       [ -d "$project_dir/workflows" ]; then
+        return 0
+    fi
+
+    # 旧構造との後方互換性
+    if [ -f "$project_dir/.masrc" ] && \
+       [ -d "$project_dir/.mas" ] && \
+       [ -d "$project_dir/unit" ] && \
+       [ -d "$project_dir/workflows" ]; then
+        return 0
+    fi
+
+    return 1
 }
 
 # ============================================================================
@@ -45,24 +57,36 @@ is_project_initialized() {
 # プロジェクト設定をロード
 load_project_config() {
     local project_root="$1"
+    local config_file=""
 
-    if [ ! -f "$project_root/.masrc" ]; then
+    # 新構造を優先的にチェック
+    if [ -f "$project_root/config.json" ]; then
+        config_file="$project_root/config.json"
+    elif [ -f "$project_root/.masrc" ]; then
+        # 後方互換性: 旧構造もサポート
+        config_file="$project_root/.masrc"
+    else
         return 1
     fi
 
     # 環境変数をエクスポート
     export PROJECT_ROOT="$project_root"
+    export MAS_WORKSPACE_ROOT="$project_root"  # 新しい環境変数
+    export MAS_PROJECT_ROOT="$project_root"     # エイリアス
 
     # JSONパース（jqを使用）
     if command -v jq &> /dev/null; then
-        export PROJECT_NAME=$(jq -r '.project_name // "unknown"' "$project_root/.masrc" 2>/dev/null || echo "unknown")
-        export PROJECT_SESSION_NAME=$(jq -r '.session_name // "mas-tmux"' "$project_root/.masrc" 2>/dev/null || echo "mas-tmux")
-        export PROJECT_VERSION=$(jq -r '.version // "1.0.0"' "$project_root/.masrc" 2>/dev/null || echo "1.0.0")
-        export PROJECT_CREATED_AT=$(jq -r '.created_at // ""' "$project_root/.masrc" 2>/dev/null || echo "")
+        # 新構造のフィールド名にも対応
+        export PROJECT_NAME=$(jq -r '.projectName // .project_name // "unknown"' "$config_file" 2>/dev/null || echo "unknown")
+        export PROJECT_SESSION_NAME=$(jq -r '.sessionName // .session_name // "mas-tmux"' "$config_file" 2>/dev/null || echo "mas-tmux")
+        export PROJECT_VERSION=$(jq -r '.version // "1.0.0"' "$config_file" 2>/dev/null || echo "1.0.0")
+        export PROJECT_CREATED_AT=$(jq -r '.createdAt // .created_at // ""' "$config_file" 2>/dev/null || echo "")
     else
         # jqがない場合のフォールバック（簡易パース）
-        export PROJECT_NAME=$(grep -o '"project_name"[[:space:]]*:[[:space:]]*"[^"]*"' "$project_root/.masrc" | cut -d'"' -f4 || echo "unknown")
-        export PROJECT_SESSION_NAME=$(grep -o '"session_name"[[:space:]]*:[[:space:]]*"[^"]*"' "$project_root/.masrc" | cut -d'"' -f4 || echo "mas-tmux")
+        export PROJECT_NAME=$(grep -o '"projectName"[[:space:]]*:[[:space:]]*"[^"]*"' "$config_file" | cut -d'"' -f4 || \
+                             grep -o '"project_name"[[:space:]]*:[[:space:]]*"[^"]*"' "$config_file" | cut -d'"' -f4 || echo "unknown")
+        export PROJECT_SESSION_NAME=$(grep -o '"sessionName"[[:space:]]*:[[:space:]]*"[^"]*"' "$config_file" | cut -d'"' -f4 || \
+                                     grep -o '"session_name"[[:space:]]*:[[:space:]]*"[^"]*"' "$config_file" | cut -d'"' -f4 || echo "mas-tmux")
         export PROJECT_VERSION="1.0.0"
         export PROJECT_CREATED_AT=""
     fi
@@ -70,6 +94,7 @@ load_project_config() {
     # プロジェクトディレクトリ
     export PROJECT_UNIT_DIR="$PROJECT_ROOT/unit"
     export PROJECT_WORKFLOWS_DIR="$PROJECT_ROOT/workflows"
+    export PROJECT_SESSIONS_DIR="$PROJECT_ROOT/sessions"  # 新規追加
 
     return 0
 }
@@ -80,23 +105,15 @@ save_project_config() {
     local project_name="${2:-$(basename "$project_root")}"
     local session_name="${3:-mas-$project_name}"
 
-    # .masディレクトリを作成
-    mkdir -p "$project_root/.mas"
-
-    # .masrcを作成（プロジェクトマーカー + 基本設定）
-    cat > "$project_root/.masrc" << EOF
+    # 新構造: config.jsonを直接プロジェクトルートに作成
+    cat > "$project_root/config.json" << EOF
 {
   "version": "$PROJECT_LIB_VERSION",
-  "project_name": "$project_name",
-  "session_name": "$session_name",
-  "created_at": "$(date -Iseconds)",
-  "mas_version": "${VERSION:-2.0.0}"
-}
-EOF
-
-    # .mas/config.jsonを作成（詳細設定）
-    cat > "$project_root/.mas/config.json" << EOF
-{
+  "projectName": "$project_name",
+  "sessionName": "$session_name",
+  "createdAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "masVersion": "${VERSION:-2.0.0}",
+  "workspaceRoot": "$project_root",
   "units": {
     "meta": ["00"],
     "design": ["10", "11", "12", "13"],

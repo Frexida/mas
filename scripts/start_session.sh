@@ -32,12 +32,12 @@ print_info() { echo "[INFO] $*"; }
 print_error() { echo "[ERROR] $*" >&2; }
 print_success() { echo "[SUCCESS] $*"; }
 
-# MASデータディレクトリ
-MAS_DATA_DIR="${MAS_DATA_DIR:-$HOME/.mas}"
-mkdir -p "$MAS_DATA_DIR/sessions"
+# ワークスペースルートを取得
+MAS_WORKSPACE_ROOT="${MAS_WORKSPACE_ROOT:-${PROJECT_ROOT:-$PWD}}"
+mkdir -p "$MAS_WORKSPACE_ROOT/sessions"
 
 # セッションワークスペースの作成
-SESSION_DIR="$MAS_DATA_DIR/sessions/$SESSION_ID"
+SESSION_DIR="$MAS_WORKSPACE_ROOT/sessions/$SESSION_ID"
 mkdir -p "$SESSION_DIR/unit"
 mkdir -p "$SESSION_DIR/workflows"
 
@@ -62,7 +62,7 @@ if [ -d "$MAS_ROOT/workflows" ]; then
     cp -r "$MAS_ROOT/workflows/"* "$SESSION_DIR/workflows/" 2>/dev/null || true
 fi
 
-# セッションメタデータを作成
+# セッションメタデータを作成（metadata.jsonとして）
 cat > "$SESSION_DIR/metadata.json" <<EOF
 {
   "sessionId": "$SESSION_ID",
@@ -73,9 +73,44 @@ cat > "$SESSION_DIR/metadata.json" <<EOF
 }
 EOF
 
-# セッションインデックスを更新
-SESSIONS_INDEX="$MAS_DATA_DIR/sessions/.index"
-echo "$SESSION_ID:active:$(date +%s)" >> "$SESSIONS_INDEX"
+# .sessionファイルも作成（後方互換性のため）
+cat > "$SESSION_DIR/.session" <<EOF
+SESSION_ID=$SESSION_ID
+TMUX_SESSION=$MAS_SESSION_NAME
+STATUS=active
+CREATED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+UNIT_DIR=$SESSION_DIR/unit
+WORKFLOWS_DIR=$SESSION_DIR/workflows
+SESSION_DIR=$SESSION_DIR
+EOF
+
+# セッションインデックスを更新（JSON形式で.sessions.indexに）
+SESSIONS_INDEX="$MAS_WORKSPACE_ROOT/sessions/.sessions.index"
+if [ ! -f "$SESSIONS_INDEX" ]; then
+    echo '{"version":"1.0","sessions":[],"lastUpdated":""}' > "$SESSIONS_INDEX"
+fi
+
+# jqを使ってJSON形式で追加
+if command -v jq &> /dev/null; then
+    TEMP_FILE="${SESSIONS_INDEX}.tmp"
+    jq --arg id "$SESSION_ID" \
+       --arg tmux "$MAS_SESSION_NAME" \
+       --arg status "active" \
+       --arg created "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+       --arg dir "$SESSION_DIR" \
+       --arg updated "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+       '.sessions += [{
+           sessionId: $id,
+           tmuxSession: $tmux,
+           status: $status,
+           createdAt: $created,
+           workingDir: $dir
+       }] | .lastUpdated = $updated' \
+       "$SESSIONS_INDEX" > "$TEMP_FILE" && mv "$TEMP_FILE" "$SESSIONS_INDEX"
+else
+    # フォールバック: 簡易形式で.indexに記録
+    echo "$SESSION_ID:active:$(date +%s)" >> "$MAS_WORKSPACE_ROOT/sessions/.index"
+fi
 
 print_info "Creating session: $MAS_SESSION_NAME"
 print_info "Session ID: $SESSION_ID"

@@ -14,6 +14,12 @@ const app = new Hono();
 // Get the directory of the current module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// 新構造: ワークスペースルートを環境変数から取得
+const MAS_WORKSPACE_ROOT = process.env.MAS_WORKSPACE_ROOT ||
+                          process.env.MAS_PROJECT_ROOT ||
+                          process.cwd();
+// 後方互換性のためMAS_ROOTを維持（スクリプトパス用）
 const MAS_ROOT = path.resolve(__dirname, '../../');
 
 // Generate a unique session ID (UUID v4 format)
@@ -45,8 +51,8 @@ app.post('/', async (c) => {
     // Generate session ID
     const sessionId = generateSessionId();
 
-    // Always create isolated session workspace
-    const sessionDir = path.join(MAS_ROOT, 'sessions', sessionId);
+    // Always create isolated session workspace (新構造: ワークスペース内)
+    const sessionDir = path.join(MAS_WORKSPACE_ROOT, 'sessions', sessionId);
     const unitDir = path.join(sessionDir, 'unit');
     const workflowsDir = path.join(sessionDir, 'workflows');
     const configPath = path.join('/tmp', `mas-config-${sessionId}.json`);
@@ -65,7 +71,9 @@ app.post('/', async (c) => {
         env: {
           ...process.env,
           MAS_SESSION_ID: sessionId,
-          MAS_SESSION_NAME: `mas-${sessionId.substring(0, 8)}`
+          MAS_SESSION_NAME: `mas-${sessionId.substring(0, 8)}`,
+          MAS_WORKSPACE_ROOT: MAS_WORKSPACE_ROOT,
+          MAS_PROJECT_ROOT: MAS_WORKSPACE_ROOT
         }
       });
 
@@ -101,7 +109,9 @@ app.post('/', async (c) => {
             timeout: 5000,
             env: {
               ...process.env,
-              MAS_SESSION_NAME: tmuxSession
+              MAS_SESSION_NAME: tmuxSession,
+              MAS_WORKSPACE_ROOT: MAS_WORKSPACE_ROOT,
+              MAS_PROJECT_ROOT: MAS_WORKSPACE_ROOT
             }
           });
         } catch (err) {
@@ -129,7 +139,9 @@ app.post('/', async (c) => {
               timeout: 5000,
               env: {
                 ...process.env,
-                MAS_SESSION_NAME: tmuxSession
+                MAS_SESSION_NAME: tmuxSession,
+                MAS_WORKSPACE_ROOT: MAS_WORKSPACE_ROOT,
+                MAS_PROJECT_ROOT: MAS_WORKSPACE_ROOT
               }
             });
             await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between messages
@@ -156,7 +168,9 @@ app.post('/', async (c) => {
               timeout: 5000,
               env: {
                 ...process.env,
-                MAS_SESSION_NAME: tmuxSession
+                MAS_SESSION_NAME: tmuxSession,
+                MAS_WORKSPACE_ROOT: MAS_WORKSPACE_ROOT,
+                MAS_PROJECT_ROOT: MAS_WORKSPACE_ROOT
               }
             });
             await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between messages
