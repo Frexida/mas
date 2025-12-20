@@ -5,6 +5,7 @@ import { AgentConfigurator } from './components/AgentConfigurator';
 import { SessionOutputDisplay } from './components/SessionOutputDisplay';
 import { SessionSelector } from './components/SessionSelector';
 import ApiSettings from './components/ApiSettings';
+import DocumentViewer from './pages/DocumentViewer';
 import type { RunsResponse, ErrorResponse } from './types/masApi';
 import { testApiConnection } from './services/masApi';
 
@@ -150,6 +151,12 @@ function App() {
             <Route
               path="/session"
               element={<SessionPage response={response} onReset={handleReset} />}
+            />
+
+            {/* ドキュメントビューワーページ */}
+            <Route
+              path="/docs"
+              element={<DocumentViewer />}
             />
 
             {/* デフォルトルート */}
