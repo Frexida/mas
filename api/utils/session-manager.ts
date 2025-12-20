@@ -135,7 +135,8 @@ export async function getAllSessions(): Promise<SessionInfo[]> {
         workingDir: metadata.SESSION_DIR || indexEntry.workingDir,
         startedAt: metadata.CREATED_AT || indexEntry.createdAt,
         agentCount: agents.filter(a => a.status === 'running').length,
-        httpServerStatus: 'stopped' // TODO: implement HTTP server status check
+        httpServerStatus: 'stopped', // TODO: implement HTTP server status check
+        restorable: status === 'terminated'
       };
 
       sessions.push(sessionInfo);
@@ -243,6 +244,116 @@ export async function connectToSession(
 }
 
 /**
+ * Restore a terminated MAS session
+ */
+export async function restoreSession(
+  sessionId: string,
+  options: { startAgents?: boolean } = {}
+): Promise<ConnectionInfo> {
+  const { startAgents = false } = options;
+
+  // Resolve full session ID if shortened
+  const sessionsIndex = await readSessionsIndex();
+  let fullSessionId = sessionId;
+
+  if (sessionsIndex?.sessions) {
+    const matchedSession = sessionsIndex.sessions.find((s: any) =>
+      s.sessionId === sessionId || s.sessionId.startsWith(sessionId)
+    );
+
+    if (!matchedSession) {
+      throw new Error('Session not found');
+    }
+
+    fullSessionId = matchedSession.sessionId;
+
+    // Check if session is terminated
+    if (matchedSession.status !== 'terminated') {
+      throw new Error(`Session is not terminated (current status: ${matchedSession.status})`);
+    }
+
+    // Check if restoration is already in progress
+    if (matchedSession.status === 'restoring') {
+      throw new Error('Session restoration is already in progress');
+    }
+  } else {
+    throw new Error('Session index not found');
+  }
+
+  // Mark session as restoring to prevent concurrent attempts
+  await updateSessionsIndex('update', fullSessionId, 'status', 'restoring');
+
+  try {
+    // Import and execute restoration
+    const { executeRestore } = await import('./restore-wrapper.js');
+    const result = await executeRestore({
+      sessionId: fullSessionId,
+      startAgents,
+      workspaceRoot: MAS_WORKSPACE_ROOT
+    });
+
+    if (!result.success) {
+      // Rollback status on failure
+      await updateSessionsIndex('update', fullSessionId, 'status', 'terminated');
+      throw new Error(result.error || 'Restoration failed');
+    }
+
+    // Update session status to inactive (not attached yet)
+    await updateSessionsIndex('update', fullSessionId, 'status', 'inactive');
+
+    // Return connection info
+    return {
+      sessionId: fullSessionId,
+      tmuxSession: result.tmuxSession || `mas-${fullSessionId.substring(0, 8)}`,
+      attachCommand: `tmux attach-session -t ${result.tmuxSession || `mas-${fullSessionId.substring(0, 8)}`}`,
+      status: 'connected',
+      timestamp: new Date().toISOString(),
+      connectionDetails: {
+        windows: 6,
+        activeAgents: startAgents ? 14 : 0
+      }
+    };
+  } catch (error: any) {
+    // Ensure status is rolled back on any error
+    await updateSessionsIndex('update', fullSessionId, 'status', 'terminated').catch(() => {});
+    throw error;
+  }
+}
+
+/**
+ * Helper function to update sessions index
+ */
+async function updateSessionsIndex(
+  action: 'update',
+  sessionId: string,
+  field: string,
+  value: any
+): Promise<void> {
+  const indexPath = path.join(MAS_WORKSPACE_ROOT, 'sessions', '.sessions.index');
+
+  try {
+    const indexContent = await readFile(indexPath, 'utf-8');
+    const index = JSON.parse(indexContent);
+
+    if (index.sessions) {
+      const session = index.sessions.find((s: any) => s.sessionId === sessionId);
+      if (session) {
+        session[field] = value;
+        index.lastUpdated = new Date().toISOString();
+
+        // Atomic write
+        const tempPath = `${indexPath}.tmp`;
+        await require('fs/promises').writeFile(tempPath, JSON.stringify(index, null, 2));
+        await require('fs/promises').rename(tempPath, indexPath);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to update sessions index:', error);
+    throw error;
+  }
+}
+
+/**
  * Stop a MAS session
  */
 export async function stopSession(sessionId: string, force: boolean = false): Promise<void> {
@@ -285,9 +396,9 @@ export async function stopSession(sessionId: string, force: boolean = false): Pr
 }
 
 /**
- * Update sessions index (helper function)
+ * Update sessions index (helper function) - Legacy version
  */
-async function updateSessionsIndex(action: string, sessionId: string, field?: string, value?: string): Promise<void> {
+async function updateSessionsIndexLegacy(action: string, sessionId: string, field?: string, value?: string): Promise<void> {
   const indexFile = path.join(MAS_ROOT, 'sessions', '.sessions.index');
   const index = await readSessionsIndex();
 
