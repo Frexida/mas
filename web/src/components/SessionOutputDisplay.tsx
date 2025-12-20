@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SessionDisplay } from './SessionDisplay';
 import { MessageSender } from './MessageSender';
 import type { RunsResponse, ErrorResponse } from '../types/masApi';
 import { isErrorResponse } from '../types/masApi';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw, FileText } from 'lucide-react';
 
 interface SessionOutputDisplayProps {
   response: RunsResponse | ErrorResponse | null;
@@ -14,6 +15,7 @@ export const SessionOutputDisplay: React.FC<SessionOutputDisplayProps> = ({
   response,
   onReset
 }) => {
+  const navigate = useNavigate();
   const [showMessageSender, setShowMessageSender] = useState(false);
 
   if (!response) {
@@ -61,6 +63,13 @@ export const SessionOutputDisplay: React.FC<SessionOutputDisplayProps> = ({
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Session Information</h2>
         <div className="space-x-2">
+          <button
+            onClick={() => navigate('/docs')}
+            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors flex items-center space-x-2"
+          >
+            <FileText size={18} />
+            <span>View Docs</span>
+          </button>
           <button
             onClick={() => setShowMessageSender(!showMessageSender)}
             className={`px-4 py-2 rounded transition-colors ${
