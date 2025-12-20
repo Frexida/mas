@@ -2,7 +2,7 @@
  * Session management type definitions
  */
 
-export type SessionStatus = 'active' | 'inactive' | 'terminated';
+export type SessionStatus = 'active' | 'inactive' | 'terminated' | 'restoring';
 
 export interface SessionInfo {
   sessionId: string;           // UUID
@@ -12,6 +12,11 @@ export interface SessionInfo {
   startedAt: string;           // ISO 8601 datetime
   agentCount: number;
   httpServerStatus: 'running' | 'stopped';
+  restorable?: boolean;        // True if session can be restored
+}
+
+export interface RestoreRequest {
+  startAgents?: boolean;       // Whether to start agents after restoration
 }
 
 export interface AgentStatus {

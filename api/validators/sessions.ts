@@ -5,7 +5,7 @@
 import { z } from 'zod';
 
 // Session status enum
-export const SessionStatusSchema = z.enum(['active', 'inactive', 'terminated']);
+export const SessionStatusSchema = z.enum(['active', 'inactive', 'terminated', 'restoring']);
 
 // Session info schema
 export const SessionInfoSchema = z.object({
@@ -15,7 +15,13 @@ export const SessionInfoSchema = z.object({
   workingDir: z.string(),
   startedAt: z.string().datetime(),
   agentCount: z.number().int().min(0),
-  httpServerStatus: z.enum(['running', 'stopped'])
+  httpServerStatus: z.enum(['running', 'stopped']),
+  restorable: z.boolean().optional()
+});
+
+// Restore request schema
+export const RestoreRequestSchema = z.object({
+  startAgents: z.boolean().optional()
 });
 
 // Agent status schema

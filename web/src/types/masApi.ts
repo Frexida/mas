@@ -53,7 +53,7 @@ export interface RunsResponse {
 /**
  * Session status enumeration
  */
-export type SessionStatus = 'active' | 'inactive' | 'terminated';
+export type SessionStatus = 'active' | 'inactive' | 'terminated' | 'restoring';
 
 /**
  * Session information for listing
@@ -64,6 +64,7 @@ export type SessionStatus = 'active' | 'inactive' | 'terminated';
  * @property status - Current status of the session
  * @property lastActivity - ISO 8601 timestamp of last activity (optional)
  * @property agentCount - Number of agents in the session (optional)
+ * @property restorable - Whether the session can be restored (optional)
  */
 export interface SessionInfo {
   sessionId: string;
@@ -73,6 +74,7 @@ export interface SessionInfo {
   status: SessionStatus;
   lastActivity?: string;
   agentCount?: number;
+  restorable?: boolean;
 }
 
 /**
@@ -121,6 +123,32 @@ export interface MessageResponse {
   status: string;
   target: string;
   timestamp: string;
+}
+
+/**
+ * Request payload for POST /sessions/:sessionId/restore endpoint
+ * @property startAgents - Whether to start agents after restoration (optional)
+ */
+export interface RestoreRequest {
+  startAgents?: boolean;
+}
+
+/**
+ * Response from POST /sessions/:sessionId/restore endpoint
+ * @property sessionId - UUID of the restored session
+ * @property tmuxSession - Tmux session identifier
+ * @property attachCommand - Command to attach to the session
+ * @property status - Status of restoration
+ * @property timestamp - ISO 8601 timestamp
+ * @property agentsStarted - Whether agents were started
+ */
+export interface RestoreResponse {
+  sessionId: string;
+  tmuxSession: string;
+  attachCommand: string;
+  status: string;
+  timestamp: string;
+  agentsStarted: boolean;
 }
 
 /**

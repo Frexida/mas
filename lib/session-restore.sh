@@ -1,10 +1,23 @@
 #!/bin/bash
 # Session restoration utilities
 
+# Exit codes for structured error handling
+readonly EXIT_SUCCESS=0
+readonly EXIT_METADATA_NOT_FOUND=1
+readonly EXIT_TMUX_EXISTS=2
+readonly EXIT_TMUX_CREATION_FAILED=3
+readonly EXIT_INVALID_SESSION_ID=4
+
 # Restore a terminated session
 restore_session() {
     local session_id="$1"
     local auto_start_agents="${2:-false}"
+
+    # Validate session ID format
+    if [[ ! "$session_id" =~ ^[a-f0-9\-]{8,36}$ ]]; then
+        print_error "Invalid session ID format: $session_id"
+        return $EXIT_INVALID_SESSION_ID
+    fi
 
     # Check if session metadata exists
     local session_dir="${MAS_WORKSPACE_ROOT}/sessions/${session_id}"
@@ -12,7 +25,7 @@ restore_session() {
 
     if [[ ! -f "$session_metadata" ]]; then
         print_error "Session metadata not found: $session_id"
-        return 1
+        return $EXIT_METADATA_NOT_FOUND
     fi
 
     # Load session metadata
@@ -21,13 +34,16 @@ restore_session() {
     # Check if tmux session already exists
     if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
         print_info "Session already exists: $TMUX_SESSION"
-        return 0
+        return $EXIT_TMUX_EXISTS
     fi
 
     print_info "Restoring session: $session_id"
 
     # Create tmux session with proper structure
-    tmux new-session -d -s "$TMUX_SESSION" -c "$SESSION_DIR"
+    if ! tmux new-session -d -s "$TMUX_SESSION" -c "$SESSION_DIR" 2>/dev/null; then
+        print_error "Failed to create tmux session: $TMUX_SESSION"
+        return $EXIT_TMUX_CREATION_FAILED
+    fi
 
     # Create windows structure
     tmux rename-window -t "$TMUX_SESSION:0" "meta"
@@ -82,7 +98,7 @@ restore_session() {
     print_success "Session restored: $TMUX_SESSION"
     print_info "Attach with: tmux attach -t $TMUX_SESSION"
 
-    return 0
+    return $EXIT_SUCCESS
 }
 
 # Sync session statuses with actual tmux sessions

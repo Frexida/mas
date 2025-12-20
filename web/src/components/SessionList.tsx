@@ -1,30 +1,67 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Play,
   Copy,
   CheckCircle,
   PauseCircle,
-  XCircle
+  XCircle,
+  RefreshCw,
+  Loader
 } from 'lucide-react';
 import type { SessionInfo, SessionStatus } from '../types/masApi';
+import { restoreSession } from '../services/masApi';
 
 interface SessionListProps {
   sessions: SessionInfo[];
   onConnect: (session: SessionInfo) => void;
   loading?: boolean;
+  onSessionsUpdate?: () => void;
 }
 
 export const SessionList: React.FC<SessionListProps> = ({
   sessions,
   onConnect,
-  loading = false
+  loading = false,
+  onSessionsUpdate
 }) => {
+  const [restoringSession, setRestoringSession] = useState<string | null>(null);
+  const [restorationError, setRestorationError] = useState<{ sessionId: string; message: string } | null>(null);
+
   const copyToClipboard = async (text: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       await navigator.clipboard.writeText(text);
     } catch (err) {
       console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleRestore = async (session: SessionInfo, withAgents: boolean = false) => {
+    setRestoringSession(session.sessionId);
+    setRestorationError(null);
+
+    try {
+      const response = await restoreSession(session.sessionId, { startAgents: withAgents });
+      console.log('Session restored:', response);
+
+      // Refresh the session list after successful restoration
+      if (onSessionsUpdate) {
+        onSessionsUpdate();
+      }
+
+      // Auto-connect to the restored session after a brief delay
+      setTimeout(() => {
+        const restoredSession = { ...session, status: 'inactive' as SessionStatus };
+        onConnect(restoredSession);
+      }, 1000);
+    } catch (error: any) {
+      console.error('Failed to restore session:', error);
+      setRestorationError({
+        sessionId: session.sessionId,
+        message: error.message || 'Failed to restore session'
+      });
+    } finally {
+      setRestoringSession(null);
     }
   };
 
@@ -36,6 +73,8 @@ export const SessionList: React.FC<SessionListProps> = ({
         return <PauseCircle className="w-4 h-4 text-yellow-600" />;
       case 'terminated':
         return <XCircle className="w-4 h-4 text-red-600" />;
+      case 'restoring':
+        return <Loader className="w-4 h-4 text-blue-600 animate-spin" />;
       default:
         return null;
     }
@@ -45,7 +84,8 @@ export const SessionList: React.FC<SessionListProps> = ({
     const statusStyles = {
       active: 'bg-green-100 text-green-800 border-green-300',
       inactive: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-      terminated: 'bg-red-100 text-red-800 border-red-300'
+      terminated: 'bg-red-100 text-red-800 border-red-300',
+      restoring: 'bg-blue-100 text-blue-800 border-blue-300'
     };
 
     return (
@@ -163,15 +203,53 @@ export const SessionList: React.FC<SessionListProps> = ({
                 {session.agentCount !== undefined ? session.agentCount : '—'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-center">
-                <button
-                  onClick={() => onConnect(session)}
-                  disabled={session.status === 'terminated' || loading}
-                  className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed"
-                  title="Connect to this session"
-                >
-                  <Play className="w-4 h-4" />
-                  Connect
-                </button>
+                <div className="flex items-center justify-center gap-2">
+                  {session.status === 'terminated' && session.restorable !== false ? (
+                    <div className="flex flex-col gap-1">
+                      {restoringSession === session.sessionId ? (
+                        <div className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-blue-600">
+                          <Loader className="w-4 h-4 animate-spin" />
+                          Restoring...
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleRestore(session, false)}
+                            disabled={loading || restoringSession !== null}
+                            className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-green-600 hover:text-green-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+                            title="Restore this session"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                            Restore
+                          </button>
+                          <button
+                            onClick={() => handleRestore(session, true)}
+                            disabled={loading || restoringSession !== null}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-green-700 hover:text-green-900 disabled:text-gray-400 disabled:cursor-not-allowed"
+                            title="Restore with agents"
+                          >
+                            + Agents
+                          </button>
+                        </>
+                      )}
+                      {restorationError?.sessionId === session.sessionId && (
+                        <div className="text-xs text-red-600 mt-1">
+                          {restorationError.message}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => onConnect(session)}
+                      disabled={session.status === 'terminated' || session.status === 'restoring' || loading}
+                      className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      title="Connect to this session"
+                    >
+                      <Play className="w-4 h-4" />
+                      Connect
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}

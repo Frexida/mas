@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "projectName": "test-mas",
+  "sessionName": "mas-test-mas",
+  "createdAt": "2025-12-20T18:23:23Z",
+  "masVersion": "2.1.0-refactored",
+  "workspaceRoot": "/home/mtdnot/dev/anag/mas",
+  "units": {
+    "meta": ["00"],
+    "design": ["10", "11", "12", "13"],
+    "development": ["20", "21", "22", "23"],
+    "business": ["30", "31", "32", "33"]
+  },
+  "models": {
+    "00": "opus",
+    "10": "opus",
+    "20": "opus",
+    "30": "opus",
+    "default": "sonnet"
+  },
+  "tmux": {
+    "window_layout": "tiled",
+    "auto_attach": true
+  },
+  "openspec": {
+    "tools": "claude"
+  }
+}

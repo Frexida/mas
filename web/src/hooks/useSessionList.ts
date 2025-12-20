@@ -6,13 +6,15 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   listSessions,
   getSession,
-  connectToSession
+  connectToSession,
+  restoreSession
 } from '../services/masApi';
 import type {
   SessionInfo,
   SessionListResponse,
   SessionStatus,
-  RunsResponse
+  RunsResponse,
+  RestoreResponse
 } from '../types/masApi';
 
 export interface UseSessionListOptions {
@@ -29,6 +31,7 @@ export interface UseSessionListResult {
   refreshSessions: () => Promise<void>;
   selectSession: (sessionId: string) => Promise<void>;
   connectSession: (sessionId: string) => Promise<RunsResponse>;
+  restoreSession: (sessionId: string, startAgents?: boolean) => Promise<RestoreResponse>;
   clearError: () => void;
 }
 
@@ -115,6 +118,31 @@ export function useSessionList(options: UseSessionListOptions = {}): UseSessionL
     }
   }, [selectSession]);
 
+  // Restore a terminated session
+  const restoreSessionCallback = useCallback(async (
+    sessionId: string,
+    startAgents: boolean = false
+  ): Promise<RestoreResponse> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await restoreSession(sessionId, { startAgents });
+
+      // Refresh sessions after successful restoration
+      await refreshSessions();
+
+      return response;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to restore session';
+      setError(errorMessage);
+      console.error('Error restoring session:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshSessions]);
+
   // Clear error state
   const clearError = useCallback(() => {
     setError(null);
@@ -144,6 +172,7 @@ export function useSessionList(options: UseSessionListOptions = {}): UseSessionL
     refreshSessions,
     selectSession,
     connectSession,
+    restoreSession: restoreSessionCallback,
     clearError
   };
 }

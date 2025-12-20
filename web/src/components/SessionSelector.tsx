@@ -9,7 +9,8 @@ import {
   CheckCircle,
   PauseCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Loader
 } from 'lucide-react';
 import type { SessionInfo, SessionStatus, RunsResponse } from '../types/masApi';
 import { useSessionList } from '../hooks/useSessionList';
@@ -32,12 +33,15 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
     error,
     refreshSessions,
     connectSession,
+    restoreSession,
     clearError
   } = useSessionList({
     autoRefresh: true,
     refreshInterval: 30000,
     statusFilter: statusFilter === 'all' ? undefined : statusFilter
   });
+
+  const [restoringSession, setRestoringSession] = useState<string | null>(null);
 
   // Filter sessions based on search term
   const filteredSessions = useMemo(() => {
@@ -60,6 +64,27 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
     }
   };
 
+  const handleSessionRestore = async (session: SessionInfo, withAgents: boolean = false) => {
+    try {
+      setRestoringSession(session.sessionId);
+      const response = await restoreSession(session.sessionId, withAgents);
+
+      // After successful restoration, connect to the session
+      setTimeout(async () => {
+        try {
+          const connectResponse = await connectSession(session.sessionId);
+          onSessionSelected(connectResponse);
+        } catch (err) {
+          console.error('Failed to connect after restore:', err);
+        }
+      }, 1000);
+    } catch (err) {
+      console.error('Failed to restore session:', err);
+    } finally {
+      setRestoringSession(null);
+    }
+  };
+
   const getStatusIcon = (status: SessionStatus) => {
     switch (status) {
       case 'active':
@@ -68,6 +93,8 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
         return <PauseCircle className="w-4 h-4 text-yellow-600" />;
       case 'terminated':
         return <XCircle className="w-4 h-4 text-red-600" />;
+      case 'restoring':
+        return <Loader className="w-4 h-4 text-blue-600 animate-spin" />;
       default:
         return null;
     }
@@ -188,8 +215,15 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
           {filteredSessions.map((session) => (
             <div
               key={session.sessionId}
-              onClick={() => handleSessionConnect(session)}
-              className="border border-gray-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-300 cursor-pointer transition-all"
+              onClick={(e) => {
+                // Don't trigger connect for terminated sessions
+                if (session.status !== 'terminated') {
+                  handleSessionConnect(session);
+                }
+              }}
+              className={`border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all ${
+                session.status === 'terminated' ? 'cursor-default' : 'hover:border-blue-300 cursor-pointer'
+              }`}
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-2">
@@ -234,6 +268,45 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
                 {session.lastActivity && (
                   <div className="text-xs text-gray-500">
                     Last activity: {getRelativeTime(session.lastActivity)}
+                  </div>
+                )}
+
+                {/* Restore buttons for terminated sessions */}
+                {session.status === 'terminated' && session.restorable !== false && (
+                  <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                    {restoringSession === session.sessionId ? (
+                      <div className="flex items-center gap-2 text-sm text-blue-600">
+                        <Loader className="w-4 h-4 animate-spin" />
+                        <span>Restoring session...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSessionRestore(session, false);
+                          }}
+                          disabled={loading || restoringSession !== null}
+                          className="flex-1 px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 rounded-md transition-colors disabled:cursor-not-allowed"
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <RefreshCw className="w-4 h-4" />
+                            Restore
+                          </div>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSessionRestore(session, true);
+                          }}
+                          disabled={loading || restoringSession !== null}
+                          className="px-3 py-2 text-sm font-medium text-green-700 bg-green-100 hover:bg-green-200 disabled:bg-gray-100 disabled:text-gray-400 rounded-md transition-colors disabled:cursor-not-allowed"
+                          title="Restore with agents"
+                        >
+                          +Agents
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

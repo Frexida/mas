@@ -12,7 +12,9 @@ import type {
   ErrorResponse,
   SessionListRequest,
   SessionListResponse,
-  SessionInfo
+  SessionInfo,
+  RestoreRequest,
+  RestoreResponse
 } from '../types/masApi';
 import { isErrorResponse } from '../types/masApi';
 import { getApiBaseUrl } from './apiConfig';
@@ -243,6 +245,34 @@ export async function connectToSession(sessionId: string): Promise<RunsResponse>
         'Content-Type': 'application/json',
       },
       timeout: 10000, // 10 seconds
+    });
+
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+    throw error; // This won't be reached due to handleApiError throwing
+  }
+}
+
+/**
+ * Restores a terminated session
+ * POST /sessions/:sessionId/restore
+ */
+export async function restoreSession(
+  sessionId: string,
+  request?: RestoreRequest
+): Promise<RestoreResponse> {
+  try {
+    const baseUrl = getApiBaseUrl();
+    const endpoint = `${baseUrl}/sessions/${sessionId}/restore`;
+
+    console.log('Restoring session:', endpoint, request);
+
+    const response = await axios.post<RestoreResponse>(endpoint, request || {}, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      timeout: 15000, // 15 seconds (restoration can take time)
     });
 
     return response.data;

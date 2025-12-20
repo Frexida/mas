@@ -7,14 +7,16 @@ import {
   getAllSessions,
   getSessionDetail,
   connectToSession,
-  stopSession
+  stopSession,
+  restoreSession
 } from '../utils/session-manager.js';
 import {
   SessionListQuerySchema,
   SessionIdParamSchema,
   ConnectRequestSchema,
   StopRequestSchema,
-  SessionListResponseSchema
+  SessionListResponseSchema,
+  RestoreRequestSchema
 } from '../validators/sessions.js';
 import type {
   SessionListResponse,
@@ -142,6 +144,73 @@ app.post('/:sessionId/connect', async (c) => {
 
     const errorResponse: ErrorResponse = {
       error: 'Failed to connect to session',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    };
+
+    return c.json(errorResponse, 500);
+  }
+});
+
+/**
+ * POST /sessions/:sessionId/restore - Restore a terminated MAS session
+ */
+app.post('/:sessionId/restore', async (c) => {
+  try {
+    // Validate session ID
+    const { sessionId } = SessionIdParamSchema.parse({
+      sessionId: c.req.param('sessionId')
+    });
+
+    // Parse and validate request body
+    const body = await c.req.json().catch(() => ({}));
+    const validatedRequest = RestoreRequestSchema.parse(body);
+
+    // Restore the session
+    const connectionInfo = await restoreSession(sessionId, {
+      startAgents: validatedRequest.startAgents
+    });
+
+    return c.json({
+      sessionId: connectionInfo.sessionId,
+      tmuxSession: connectionInfo.tmuxSession,
+      attachCommand: connectionInfo.attachCommand,
+      status: 'restored',
+      timestamp: new Date().toISOString(),
+      agentsStarted: validatedRequest.startAgents || false
+    }, 200);
+  } catch (error: any) {
+    console.error('Failed to restore session:', error);
+
+    if (error.message === 'Session not found') {
+      const errorResponse: ErrorResponse = {
+        error: 'Session not found',
+        details: { sessionId: c.req.param('sessionId') },
+        timestamp: new Date().toISOString()
+      };
+      return c.json(errorResponse, 404);
+    }
+
+    if (error.message.includes('not terminated')) {
+      const errorResponse: ErrorResponse = {
+        error: 'Session is not terminated',
+        details: error.message,
+        timestamp: new Date().toISOString()
+      };
+      return c.json(errorResponse, 400);
+    }
+
+    if (error.message.includes('already in progress')) {
+      const errorResponse: ErrorResponse = {
+        error: 'Restoration already in progress',
+        details: error.message,
+        timestamp: new Date().toISOString()
+      };
+      return c.json(errorResponse, 409);
+    }
+
+    const errorResponse: ErrorResponse = {
+      error: 'Failed to restore session',
       details: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString()
     };
