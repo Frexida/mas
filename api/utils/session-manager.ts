@@ -189,11 +189,26 @@ export async function connectToSession(
 ): Promise<ConnectionInfo> {
   // Find the tmux session
   const tmuxSessions = await listTmuxSessions();
-  const tmuxSessionName = tmuxSessions.find(name =>
-    name.includes(sessionId) || parseSessionId(name) === sessionId
-  );
+
+  console.log('Looking for session:', sessionId);
+  console.log('Available tmux sessions:', tmuxSessions);
+
+  // Match by either full UUID or first 8 characters
+  const sessionIdShort = sessionId.substring(0, 8);
+  const tmuxSessionName = tmuxSessions.find(name => {
+    // Check if it matches the pattern mas-XXXXXXXX
+    if (name.startsWith('mas-')) {
+      const nameId = name.substring(4); // Remove 'mas-' prefix
+      console.log(`Comparing: nameId="${nameId}" with sessionId="${sessionId}" and sessionIdShort="${sessionIdShort}"`);
+      // Match either full UUID or short form
+      return nameId === sessionId || nameId === sessionIdShort ||
+             sessionId.startsWith(nameId) || nameId.startsWith(sessionIdShort);
+    }
+    return false;
+  });
 
   if (!tmuxSessionName) {
+    console.error('Session not found in tmux sessions');
     throw new Error('Session not found');
   }
 

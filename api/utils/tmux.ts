@@ -13,8 +13,14 @@ const execAsync = promisify(exec);
  */
 export async function listTmuxSessions(): Promise<string[]> {
   try {
-    const { stdout } = await execAsync('tmux list-sessions -F "#{session_name}"', {
-      timeout: 5000
+    // Use explicit socket path if not in tmux environment
+    const tmuxCmd = process.env.TMUX
+      ? 'tmux list-sessions -F "#{session_name}"'
+      : 'tmux -S /tmp/tmux-$(id -u)/default list-sessions -F "#{session_name}" 2>/dev/null || tmux list-sessions -F "#{session_name}"';
+
+    const { stdout } = await execAsync(tmuxCmd, {
+      timeout: 5000,
+      shell: true
     });
 
     return stdout
@@ -23,10 +29,11 @@ export async function listTmuxSessions(): Promise<string[]> {
       .filter(line => line.startsWith('mas-'));
   } catch (error: any) {
     // If tmux server is not running, return empty array
-    if (error.message.includes('no server running')) {
+    if (error.message.includes('no server running') || error.message.includes('No such file')) {
       return [];
     }
-    throw error;
+    console.error('Error listing tmux sessions:', error.message);
+    return [];
   }
 }
 
