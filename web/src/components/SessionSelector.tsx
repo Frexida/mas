@@ -111,7 +111,7 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="w-full h-full p-6">
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Select Tmux Session</h1>
         <button

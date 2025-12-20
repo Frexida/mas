@@ -23,7 +23,7 @@ export const SessionOutputDisplay: React.FC<SessionOutputDisplayProps> = ({
   // Handle error response
   if (isErrorResponse(response)) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="w-full h-full overflow-y-auto p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
           <div className="flex items-start space-x-3">
             <AlertCircle className="text-red-600 mt-0.5" size={24} />
@@ -57,7 +57,7 @@ export const SessionOutputDisplay: React.FC<SessionOutputDisplayProps> = ({
   const sessionResponse = response as RunsResponse;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="w-full h-full overflow-y-auto p-6">
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Session Information</h2>
         <div className="space-x-2">
