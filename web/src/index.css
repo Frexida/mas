@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Critical layout utilities to ensure they're never purged */
+@layer utilities {
+  .layout-full-width {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .session-list-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+}
