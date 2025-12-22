@@ -248,9 +248,9 @@ export async function connectToSession(
  */
 export async function restoreSession(
   sessionId: string,
-  options: { startAgents?: boolean } = {}
+  options: { startAgents?: boolean; force?: boolean } = {}
 ): Promise<ConnectionInfo> {
-  const { startAgents = false } = options;
+  const { startAgents = false, force = false } = options;
 
   // Resolve full session ID if shortened
   const sessionsIndex = await readSessionsIndex();
@@ -266,15 +266,48 @@ export async function restoreSession(
     }
 
     fullSessionId = matchedSession.sessionId;
-
-    // Check if session is terminated
-    if (matchedSession.status !== 'terminated') {
-      throw new Error(`Session is not terminated (current status: ${matchedSession.status})`);
-    }
+    const tmuxSessionName = matchedSession.tmuxSession || `mas-${fullSessionId.substring(0, 8)}`;
 
     // Check if restoration is already in progress
     if (matchedSession.status === 'restoring') {
       throw new Error('Session restoration is already in progress');
+    }
+
+    // Smart validation: Check actual tmux session existence
+    const tmuxExists = await sessionExists(tmuxSessionName);
+
+    // If force flag is set, allow restoration regardless of status
+    if (!force) {
+      // Allow restoration in these cases:
+      // 1. Status is 'terminated'
+      // 2. Status is 'inactive' AND tmux doesn't exist
+      // 3. Status is 'active' AND tmux doesn't exist (will update to terminated)
+
+      if (matchedSession.status === 'terminated') {
+        // Normal case: session is properly terminated
+      } else if (!tmuxExists) {
+        // Session lost its tmux process but status wasn't updated
+        console.log(`Session ${fullSessionId} has status '${matchedSession.status}' but tmux session doesn't exist. Updating to 'terminated'.`);
+        await updateSessionsIndex('update', fullSessionId, 'status', 'terminated');
+        matchedSession.status = 'terminated';
+      } else {
+        // Tmux session exists and status is not terminated
+        throw new Error(
+          `Cannot restore session: tmux session still exists with status '${matchedSession.status}'. ` +
+          `Use force option to override or stop the session first.`
+        );
+      }
+    } else if (tmuxExists) {
+      // Force restoration: terminate existing tmux session
+      console.log(`Force restoring session ${fullSessionId}. Terminating existing tmux session.`);
+      try {
+        const { exec } = await import('child_process');
+        const { promisify } = await import('util');
+        const execAsync = promisify(exec);
+        await execAsync(`tmux kill-session -t "${tmuxSessionName}"`, { timeout: 5000 });
+      } catch (error) {
+        console.error('Failed to kill existing tmux session:', error);
+      }
     }
   } else {
     throw new Error('Session index not found');

@@ -17,6 +17,7 @@ export interface SessionInfo {
 
 export interface RestoreRequest {
   startAgents?: boolean;       // Whether to start agents after restoration
+  force?: boolean;             // Force restoration even if session appears active
 }
 
 export interface AgentStatus {
