@@ -12,7 +12,14 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       assetsDir: 'assets',
       sourcemap: false,
-      minify: 'terser'
+      minify: 'terser',
+      // Ensure CSS is processed consistently
+      cssMinify: true,
+      // Preserve all CSS for consistency
+      cssCodeSplit: false
+    },
+    css: {
+      postcss: './postcss.config.js'
     },
     server: {
       host: '0.0.0.0',
