@@ -32,9 +32,10 @@ export default defineConfig(({ mode }) => {
         port: parseInt(env.VITE_HMR_PORT || '5173')
       } : true,
       // Proxy configuration (optional, configured via environment)
-      proxy: env.VITE_API_PROXY_TARGET ? {
+      // Supports both VITE_API_PROXY_TARGET and VITE_API_BASE
+      proxy: (env.VITE_API_PROXY_TARGET || env.VITE_API_BASE) ? {
         '/api': {
-          target: env.VITE_API_PROXY_TARGET,
+          target: env.VITE_API_PROXY_TARGET || env.VITE_API_BASE,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
           secure: false
