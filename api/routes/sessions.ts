@@ -168,7 +168,8 @@ app.post('/:sessionId/restore', async (c) => {
 
     // Restore the session
     const connectionInfo = await restoreSession(sessionId, {
-      startAgents: validatedRequest.startAgents
+      startAgents: validatedRequest.startAgents,
+      force: validatedRequest.force
     });
 
     return c.json({
@@ -189,6 +190,15 @@ app.post('/:sessionId/restore', async (c) => {
         timestamp: new Date().toISOString()
       };
       return c.json(errorResponse, 404);
+    }
+
+    if (error.message.includes('Cannot restore session')) {
+      const errorResponse: ErrorResponse = {
+        error: 'Cannot restore session',
+        details: error.message,
+        timestamp: new Date().toISOString()
+      };
+      return c.json(errorResponse, 400);
     }
 
     if (error.message.includes('not terminated')) {

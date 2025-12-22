@@ -25,7 +25,7 @@ wrangler login
 Create a `wrangler.toml` file in your project root:
 
 ```toml
-name = "mas-ui"
+name = "mas"
 compatibility_date = "2025-12-17"
 
 [site]
@@ -264,7 +264,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: mas-ui
+          projectName: mas
           directory: dist
 ```
 

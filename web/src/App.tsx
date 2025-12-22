@@ -113,7 +113,7 @@ function App() {
 
   return (
     <Router>
-      <div className="h-screen flex flex-col bg-gray-50">
+      <div className="h-screen w-full layout-full-width flex flex-col bg-gray-50">
         <Header />
 
         {/* API Status Banner */}

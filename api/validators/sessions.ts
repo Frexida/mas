@@ -21,7 +21,8 @@ export const SessionInfoSchema = z.object({
 
 // Restore request schema
 export const RestoreRequestSchema = z.object({
-  startAgents: z.boolean().optional()
+  startAgents: z.boolean().optional(),
+  force: z.boolean().optional()
 });
 
 // Agent status schema
