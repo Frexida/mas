@@ -19,7 +19,7 @@ npm install -g vercel
 
 2. **Deploy from your project directory:**
 ```bash
-cd mas-ui
+cd mas
 vercel
 ```
 
