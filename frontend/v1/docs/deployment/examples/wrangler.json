@@ -1,0 +1,19 @@
+{
+  "name": "mas-ui",
+  "compatibility_date": "2025-12-17",
+  "assets": {
+    "directory": "./dist"
+  },
+  "vars": {
+    "VITE_API_BASE_URL": "https://your-api-server.com"
+  },
+  "site": {
+    "bucket": "./dist"
+  },
+  "routes": [
+    {
+      "pattern": "your-domain.com/*",
+      "custom_domain": true
+    }
+  ]
+}

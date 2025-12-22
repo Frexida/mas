@@ -1,0 +1,11 @@
+# Cloudflare Pages専用設定
+name = "mas-frontend"
+pages_build_output_dir = "dist"
+
+# Pages Functions（必要な場合）
+# [compatibility_flags]
+# nodejs_compat = true
+
+# 環境変数（Cloudflareダッシュボードでも設定可能）
+[vars]
+VITE_API_BASE_URL = "https://api.example.com"
