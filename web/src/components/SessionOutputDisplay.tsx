@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SessionDisplay } from './SessionDisplay';
-import { MessageSender } from './MessageSender';
+import { MessageSenderWithTemplates } from './MessageSenderWithTemplates';
 import type { RunsResponse, ErrorResponse } from '../types/masApi';
 import { isErrorResponse } from '../types/masApi';
 import { AlertCircle, RefreshCw, FileText } from 'lucide-react';
@@ -93,7 +93,7 @@ export const SessionOutputDisplay: React.FC<SessionOutputDisplayProps> = ({
 
       {showMessageSender && (
         <div className="mt-6">
-          <MessageSender tmuxSession={sessionResponse.tmuxSession} />
+          <MessageSenderWithTemplates tmuxSession={sessionResponse.tmuxSession} />
         </div>
       )}
     </div>

@@ -96,12 +96,35 @@ app.post('/', async (c) => {
         console.log('mas send stderr:', stderr);
       }
 
-      // Send "execute it." after 3 seconds if execute flag is true
+      // Execute the message if execute flag is true
       if (validated.execute) {
-        setTimeout(async () => {
-          const execCmd = `${MAS_ROOT}/mas send "${target}" "execute it." -e`;
-          await execAsync(execCmd, { cwd: MAS_ROOT, env: { ...process.env, MAS_SESSION_NAME: sessionName }});
-        }, 3000);
+        // Calculate dynamic delay based on message length
+        // Approximately 100ms per 100 characters, minimum 500ms, maximum 5000ms
+        const messageLength = validated.message.length;
+        const calculatedDelay = Math.min(Math.max(500, messageLength * 1), 5000);
+
+        console.log(`[Execute Mode] Waiting ${calculatedDelay}ms before sending execution command (message length: ${messageLength})`);
+
+        // Wait for the calculated delay
+        await new Promise(resolve => setTimeout(resolve, calculatedDelay));
+
+        try {
+          // Send the execution command with Enter key
+          const execCmd = `${MAS_ROOT}/mas send "${target}" "" -e`;
+          const { stdout: execStdout, stderr: execStderr } = await execAsync(execCmd, {
+            cwd: MAS_ROOT,
+            env: { ...process.env, MAS_SESSION_NAME: sessionName },
+            timeout: 10000
+          });
+
+          if (execStderr) {
+            console.log('mas send execution stderr:', execStderr);
+          }
+          console.log('[Execute Mode] Execution command sent successfully');
+        } catch (execError: any) {
+          console.error('[Execute Mode] Failed to send execution command:', execError);
+          // Continue despite error - the main message was already sent
+        }
       }
 
       const response: MessageResponse = {
