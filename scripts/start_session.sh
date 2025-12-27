@@ -41,12 +41,19 @@ SESSION_DIR="$MAS_WORKSPACE_ROOT/sessions/$SESSION_ID"
 mkdir -p "$SESSION_DIR/unit"
 mkdir -p "$SESSION_DIR/workflows"
 
-# 各エージェントのディレクトリを作成
+# 各エージェントのディレクトリを作成とopenspec初期化
 for unit_num in 00 10 11 12 13 20 21 22 23 30 31 32 33; do
     mkdir -p "$SESSION_DIR/unit/$unit_num"
 
-    # openspecディレクトリも作成
-    mkdir -p "$SESSION_DIR/unit/$unit_num/openspec"
+    # 各エージェントディレクトリでopenspec initを実行
+    if command -v openspec &> /dev/null; then
+        cd "$SESSION_DIR/unit/$unit_num"
+        openspec init --tools claude > /dev/null 2>&1 || echo "Warning: openspec init failed for agent $unit_num"
+        cd - > /dev/null
+    else
+        # openspecコマンドがない場合は手動でディレクトリを作成
+        mkdir -p "$SESSION_DIR/unit/$unit_num/openspec"
+    fi
 
     # 基本的なREADMEを作成
     cat > "$SESSION_DIR/unit/$unit_num/README.md" <<EOF
