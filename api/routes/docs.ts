@@ -49,16 +49,20 @@ app.get('/structure', (c) => {
 // エージェントのドキュメント一覧を取得
 app.get('/agent/:agentId', async (c) => {
   const agentId = c.req.param('agentId');
-  const unitPath = path.join(process.cwd(), 'unit', agentId, 'openspec');
+  // プロジェクトルートの unit ディレクトリを参照
+  const unitPath = path.join(process.cwd(), '..', 'unit', agentId, 'openspec');
 
   try {
     const files = await listFiles(unitPath);
+    console.log(`[DEBUG] Reading from: ${unitPath}`);
+    console.log(`[DEBUG] Files found:`, JSON.stringify(files, null, 2));
     return c.json({
       agentId,
       path: `unit/${agentId}/openspec/`,
       files
     });
   } catch (error) {
+    console.error(`[ERROR] Failed to read documents from ${unitPath}:`, error);
     return c.json({ error: 'Failed to read documents' }, 404);
   }
 });
@@ -66,7 +70,11 @@ app.get('/agent/:agentId', async (c) => {
 // 特定のドキュメントを取得
 app.get('/agent/:agentId/file/*', async (c) => {
   const agentId = c.req.param('agentId');
-  const filePath = c.req.param('*');
+  // /docs プレフィックスも考慮
+  const fullPath = c.req.path;
+  const filePath = fullPath.replace(`/docs/agent/${agentId}/file/`, '').replace(`/agent/${agentId}/file/`, '');
+
+  console.log(`[DEBUG] fullPath: ${fullPath}, filePath: ${filePath}`);
 
   // パストラバーサル保護
   const normalizedPath = path.normalize(filePath);
@@ -74,10 +82,11 @@ app.get('/agent/:agentId/file/*', async (c) => {
     return c.json({ error: 'Invalid file path' }, 400);
   }
 
-  const fullPath = path.join(process.cwd(), 'unit', agentId, 'openspec', filePath);
+  // プロジェクトルートの unit ディレクトリを参照
+  const fullFilePath = path.join(process.cwd(), '..', 'unit', agentId, 'openspec', filePath);
 
   try {
-    const content = await fs.readFile(fullPath, 'utf-8');
+    const content = await fs.readFile(fullFilePath, 'utf-8');
     return c.json({
       agentId,
       path: filePath,
@@ -116,6 +125,7 @@ async function listFiles(dir: string, basePath: string = ''): Promise<any> {
     }
   } catch (error) {
     // ディレクトリが存在しない場合は空配列を返す
+    console.error(`[ERROR] listFiles failed for ${dir}:`, error);
     return [];
   }
 
