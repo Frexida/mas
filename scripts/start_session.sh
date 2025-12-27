@@ -62,6 +62,12 @@ for unit_num in 00 10 11 12 13 20 21 22 23 30 31 32 33; do
 This is the workspace for agent $unit_num.
 All agent-specific files and outputs will be stored here.
 EOF
+
+    # メタマネージャーには批判的思考版のワークフロー指示書をコピー
+    if [ "$unit_num" = "00" ] && [ -f "$MAS_ROOT/unit/00/WORKFLOW_INSTRUCTIONS_CRITICAL.md" ]; then
+        cp "$MAS_ROOT/unit/00/WORKFLOW_INSTRUCTIONS_CRITICAL.md" "$SESSION_DIR/unit/00/WORKFLOW_INSTRUCTIONS.md"
+        echo "Copied critical thinking workflow for Meta Manager"
+    fi
 done
 
 # テンプレートからワークフローをコピー
@@ -126,12 +132,29 @@ print_info "Workspace: $SESSION_DIR"
 # tmuxセッション作成
 tmux new-session -d -s "$MAS_SESSION_NAME" -c "$SESSION_DIR"
 
-# ウィンドウ作成
+# ウィンドウ作成（動的に必要なユニットのみ作成）
+# メタマネージャーは常に作成（単一ユニット時でも品質管理のため）
 tmux new-window -t "$MAS_SESSION_NAME:1" -n "meta-manager" -c "$SESSION_DIR"
-tmux new-window -t "$MAS_SESSION_NAME:2" -n "design" -c "$SESSION_DIR"
-tmux new-window -t "$MAS_SESSION_NAME:3" -n "development" -c "$SESSION_DIR"
-tmux new-window -t "$MAS_SESSION_NAME:4" -n "business" -c "$SESSION_DIR"
-tmux new-window -t "$MAS_SESSION_NAME:5" -n "monitor" -c "$SESSION_DIR"
+
+# 各ユニットの存在をチェックして必要に応じてウィンドウを作成
+WINDOW_NUM=2
+if [ -d "$SESSION_DIR/unit/10" ] || [ -d "$SESSION_DIR/unit/11" ] || [ -d "$SESSION_DIR/unit/12" ] || [ -d "$SESSION_DIR/unit/13" ]; then
+    tmux new-window -t "$MAS_SESSION_NAME:$WINDOW_NUM" -n "design" -c "$SESSION_DIR"
+    ((WINDOW_NUM++))
+fi
+
+if [ -d "$SESSION_DIR/unit/20" ] || [ -d "$SESSION_DIR/unit/21" ] || [ -d "$SESSION_DIR/unit/22" ] || [ -d "$SESSION_DIR/unit/23" ]; then
+    tmux new-window -t "$MAS_SESSION_NAME:$WINDOW_NUM" -n "development" -c "$SESSION_DIR"
+    ((WINDOW_NUM++))
+fi
+
+if [ -d "$SESSION_DIR/unit/30" ] || [ -d "$SESSION_DIR/unit/31" ] || [ -d "$SESSION_DIR/unit/32" ] || [ -d "$SESSION_DIR/unit/33" ]; then
+    tmux new-window -t "$MAS_SESSION_NAME:$WINDOW_NUM" -n "business" -c "$SESSION_DIR"
+    ((WINDOW_NUM++))
+fi
+
+# モニターウィンドウは常に最後に作成
+tmux new-window -t "$MAS_SESSION_NAME:$WINDOW_NUM" -n "monitor" -c "$SESSION_DIR"
 
 # エージェント起動
 print_info "Starting agents..."
