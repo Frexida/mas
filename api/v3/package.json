@@ -1,0 +1,27 @@
+{
+  "name": "@mas/api-v3",
+  "version": "3.0.0",
+  "description": "MAS API Server v3 (Experimental)",
+  "main": "server.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "PORT=3003 node --import tsx server.ts",
+    "start": "PORT=3003 node --import tsx server.ts",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.7",
+    "hono": "^4.0.0",
+    "tsx": "^4.21.0",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.16"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

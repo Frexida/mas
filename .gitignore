@@ -50,6 +50,12 @@ coverage/
 .DS_Store
 Thumbs.db
 
+# Vite
+.vite/
+
+# Worktree management
+.worktree-ports
+
 # Sessions
 sessions/
 *.session
