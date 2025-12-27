@@ -26,7 +26,21 @@
     "dev:api": "npm run start --workspace=api",
     "dev:web": "npm run dev --workspace=web",
     "build:web": "npm run build --workspace=web",
-    "deploy:cloudflare": "cd web && npm run build && wrangler pages deploy dist"
+    "deploy:cloudflare": "cd web && npm run build && wrangler pages deploy dist",
+    "dev:api:v1": "pnpm --filter @mas/api-v1 dev",
+    "dev:api:v2": "pnpm --filter @mas/api-v2 dev",
+    "dev:api:v3": "pnpm --filter @mas/api-v3 dev",
+    "dev:api:all": "concurrently \"pnpm dev:api:v1\" \"pnpm dev:api:v2\" \"pnpm dev:api:v3\"",
+    "dev:web:v1": "pnpm --filter @mas/web-v1 dev",
+    "dev:web:v2": "pnpm --filter @mas/web-v2 dev",
+    "dev:web:v3": "pnpm --filter @mas/web-v3 dev",
+    "dev:web:all": "concurrently \"pnpm dev:web:v1\" \"pnpm dev:web:v2\" \"pnpm dev:web:v3\"",
+    "dev:v1": "concurrently \"pnpm dev:api:v1\" \"pnpm dev:web:v1\"",
+    "dev:v2": "concurrently \"pnpm dev:api:v2\" \"pnpm dev:web:v2\"",
+    "dev:v3": "concurrently \"pnpm dev:api:v3\" \"pnpm dev:web:v3\"",
+    "dev:all": "concurrently \"pnpm dev:v1\" \"pnpm dev:v2\" \"pnpm dev:v3\"",
+    "health": "node scripts/health-check.js",
+    "stop:all": "node scripts/stop-all.js"
   },
   "dependencies": {
     "chalk": "^5.3.0"

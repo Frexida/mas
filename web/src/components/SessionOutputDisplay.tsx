@@ -64,7 +64,7 @@ export const SessionOutputDisplay: React.FC<SessionOutputDisplayProps> = ({
         <h2 className="text-2xl font-bold text-gray-900">Session Information</h2>
         <div className="space-x-2">
           <button
-            onClick={() => navigate('/docs')}
+            onClick={() => navigate(`/docs?sessionId=${sessionResponse.sessionId}`)}
             className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors flex items-center space-x-2"
           >
             <FileText size={18} />

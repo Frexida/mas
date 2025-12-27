@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   RefreshCw,
@@ -10,7 +11,8 @@ import {
   PauseCircle,
   XCircle,
   AlertCircle,
-  Loader
+  Loader,
+  FileText
 } from 'lucide-react';
 import type { SessionInfo, SessionStatus, RunsResponse } from '../types/masApi';
 import { useSessionList } from '../hooks/useSessionList';
@@ -24,6 +26,7 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
   onSessionSelected,
   onCreateNew
 }) => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<SessionStatus | 'all'>('all');
 
@@ -268,6 +271,32 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
                 {session.lastActivity && (
                   <div className="text-xs text-gray-500">
                     Last activity: {getRelativeTime(session.lastActivity)}
+                  </div>
+                )}
+
+                {/* View Docs button for active sessions */}
+                {session.status === 'active' && (
+                  <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/docs?sessionId=${session.sessionId}`);
+                      }}
+                      className="flex-1 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <FileText className="w-4 h-4" />
+                      View Docs
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSessionConnect(session);
+                      }}
+                      className="flex-1 px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Terminal className="w-4 h-4" />
+                      Connect
+                    </button>
                   </div>
                 )}
 

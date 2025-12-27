@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Header } from './components/Header';
 import { AgentConfigurator } from './components/AgentConfigurator';
 import { SessionOutputDisplay } from './components/SessionOutputDisplay';
@@ -18,7 +18,8 @@ function SessionSelectorPage({ onSessionSelected }: { onSessionSelected: (sessio
       <SessionSelector
         onSessionSelected={(session) => {
           onSessionSelected(session);
-          navigate('/session');
+          // URLにsessionIdを含めてナビゲート
+          navigate(`/session?sessionId=${session.sessionId}`);
         }}
         onCreateNew={() => {
           navigate('/create-session');
@@ -37,7 +38,12 @@ function CreateSessionPage({ onSubmitSuccess }: { onSubmitSuccess: (response: Ru
       <AgentConfigurator
         onSubmitSuccess={(apiResponse) => {
           onSubmitSuccess(apiResponse);
-          navigate('/session');
+          // 作成したセッションのIDをURLに含める
+          if ('sessionId' in apiResponse) {
+            navigate(`/session?sessionId=${apiResponse.sessionId}`);
+          } else {
+            navigate('/session');
+          }
         }}
         onBack={() => {
           navigate('/');
@@ -50,8 +56,11 @@ function CreateSessionPage({ onSubmitSuccess }: { onSubmitSuccess: (response: Ru
 // セッション表示ページコンポーネント
 function SessionPage({ response, onReset }: { response: RunsResponse | ErrorResponse | null; onReset: () => void }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sessionId = searchParams.get('sessionId');
 
-  if (!response) {
+  // responseがなく、sessionIdもない場合はトップページへ
+  if (!response && !sessionId) {
     return <Navigate to="/" replace />;
   }
 

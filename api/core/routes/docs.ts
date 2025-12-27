@@ -56,6 +56,12 @@ app.get('/agent/:agentId', async (c) => {
   if (sessionId) {
     const workspaceRoot = process.env.MAS_WORKSPACE_ROOT || process.cwd();
     unitPath = path.join(workspaceRoot, 'sessions', sessionId, 'unit', agentId, 'openspec');
+    console.log('[DEBUG] Session docs path:', {
+      sessionId,
+      workspaceRoot,
+      unitPath,
+      exists: await fs.access(unitPath).then(() => true).catch(() => false)
+    });
   } else {
     // 後方互換性のため、sessionIdなしの場合は従来のパス
     unitPath = path.join(process.cwd(), 'unit', agentId, 'openspec');
@@ -76,8 +82,28 @@ app.get('/agent/:agentId', async (c) => {
 // 特定のドキュメントを取得
 app.get('/agent/:agentId/file/*', async (c) => {
   const agentId = c.req.param('agentId');
-  const filePath = c.req.param('*');
   const sessionId = c.req.query('sessionId');
+
+  // Honoでワイルドカードパラメータを取得する正しい方法
+  // URLからagentId/fileの部分を除去してファイルパスを取得
+  const url = c.req.url;
+  const match = url.match(/\/agent\/[^\/]+\/file\/([^?]+)/);
+  const filePath = match ? match[1] : undefined;
+
+  console.log('[DEBUG] File request:', {
+    agentId,
+    filePath,
+    sessionId,
+    url: c.req.url,
+    params: c.req.param(),
+    match
+  });
+
+  // filePathが取得できない場合の処理
+  if (!filePath) {
+    console.error('[ERROR] filePath is undefined');
+    return c.json({ error: 'File path is required' }, 400);
+  }
 
   // パストラバーサル保護
   const normalizedPath = path.normalize(filePath);

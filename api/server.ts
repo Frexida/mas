@@ -7,7 +7,7 @@ import messageRoute from './routes/message.js';
 import runsRoute from './routes/runs.js';
 import statusRoute from './routes/status.js';
 import sessionsRoute from './routes/sessions.js';
-import docsRoute from './routes/docs.js';
+import docsRoute from './core/routes/docs.js';
 
 const app = new Hono();
 

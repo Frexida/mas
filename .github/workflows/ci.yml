@@ -5,7 +5,7 @@ name: MAS CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop, 'feature/**' ]
+    branches: [ '**' ]  # 全てのブランチでpush時に実行
   pull_request:
     branches: [ main, develop ]
   schedule:
