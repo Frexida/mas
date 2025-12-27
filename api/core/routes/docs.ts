@@ -55,7 +55,8 @@ app.get('/agent/:agentId', async (c) => {
   let unitPath;
   if (sessionId) {
     const workspaceRoot = process.env.MAS_WORKSPACE_ROOT || process.cwd();
-    unitPath = path.join(workspaceRoot, 'sessions', sessionId, 'unit', agentId, 'openspec');
+    // OpenSpecの成果物はエージェントのルートディレクトリに生成されるため、openspecディレクトリではなく親ディレクトリを参照
+    unitPath = path.join(workspaceRoot, 'sessions', sessionId, 'unit', agentId);
     console.log('[DEBUG] Session docs path:', {
       sessionId,
       workspaceRoot,
@@ -64,14 +65,14 @@ app.get('/agent/:agentId', async (c) => {
     });
   } else {
     // 後方互換性のため、sessionIdなしの場合は従来のパス
-    unitPath = path.join(process.cwd(), 'unit', agentId, 'openspec');
+    unitPath = path.join(process.cwd(), 'unit', agentId);
   }
 
   try {
     const files = await listFiles(unitPath);
     return c.json({
       agentId,
-      path: `unit/${agentId}/openspec/`,
+      path: `unit/${agentId}/`,
       files
     });
   } catch (error) {
@@ -115,10 +116,11 @@ app.get('/agent/:agentId/file/*', async (c) => {
   let fullPath;
   if (sessionId) {
     const workspaceRoot = process.env.MAS_WORKSPACE_ROOT || process.cwd();
-    fullPath = path.join(workspaceRoot, 'sessions', sessionId, 'unit', agentId, 'openspec', filePath);
+    // OpenSpecの成果物はエージェントのルートディレクトリに生成されるため、openspecディレクトリではなく親ディレクトリを参照
+    fullPath = path.join(workspaceRoot, 'sessions', sessionId, 'unit', agentId, filePath);
   } else {
     // 後方互換性のため、sessionIdなしの場合は従来のパス
-    fullPath = path.join(process.cwd(), 'unit', agentId, 'openspec', filePath);
+    fullPath = path.join(process.cwd(), 'unit', agentId, filePath);
   }
 
   try {
