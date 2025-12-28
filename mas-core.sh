@@ -336,14 +336,47 @@ cmd_start() {
 
 # Legacy startコマンド: セッション開始（廃止予定）
 
-# sendコマンド: メッセージ送信
+# sendコマンド: メッセージ送信（送信元チェック付き）
 cmd_send() {
-    local target="$1"
-    local message="$2"
-    shift 2
+    # 引数が2つの場合は旧形式（後方互換性）
+    if [ $# -eq 2 ] || { [ $# -eq 3 ] && [[ "$3" == "-"* ]]; }; then
+        # 旧形式: mas send <target> <message> [options]
+        print_warning "警告: 旧形式のコマンドです。新形式を使用してください:"
+        print_warning "  mas send <from> <to> <message> [options]"
+        local target="$1"
+        local message="$2"
+        shift 2
+    else
+        # 新形式: mas send <from> <to> <message> [options]
+        local from="$1"
+        local target="$2"
+        local message="$3"
+        shift 3
+
+        # 通信ルールチェック（ライブラリをロード）
+        if [ -f "$SCRIPT_DIR/lib/mas-communication-rules.sh" ]; then
+            source "$SCRIPT_DIR/lib/mas-communication-rules.sh"
+
+            # 通信が許可されているかチェック
+            if ! is_communication_allowed "$from" "$target"; then
+                print_communication_error "$from" "$target"
+                return 1
+            fi
+
+            # 許可された通信の場合、送信元情報をメッセージに追加
+            local from_name=$(get_agent_name "$from")
+            message="[From: $from ($from_name)] $message"
+        fi
+    fi
 
     if [ -z "$target" ] || [ -z "$message" ]; then
-        print_error "使用方法: mas send <target> <message> [-n|--no-execute]"
+        print_error "使用方法:"
+        print_error "  新形式: mas send <from> <to> <message> [options]"
+        print_error "  旧形式: mas send <target> <message> [options]"
+        print_error ""
+        print_error "例:"
+        print_error "  mas send 11 10 \"UIデザイン完了しました\"  # 11→10への送信"
+        print_error "  mas send 10 00 \"デザインユニットから報告\" # 10→00への送信"
         return 1
     fi
 
