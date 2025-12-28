@@ -74,6 +74,9 @@ sendオプション:
     -n, --no-execute        メッセージ送信のみ（Enterを送信しない）
     -e, --execute           メッセージ送信後にEnterを送信（デフォルト）
 
+    注意: Claude Code互換性のため、すべてのメッセージ送信の3秒後に
+          自動的に"EOF"が送信されます
+
 例:
     mas init                      # 現在のディレクトリでプロジェクト初期化
     mas start                     # APIとWebUIを起動
@@ -444,6 +447,13 @@ cmd_send() {
 
     # メッセージ送信
     route_message "$target" "$message" "$execute"
+
+    # Claude Code互換性のため、3秒後にEOFを自動送信
+    # バックグラウンドで実行して即座に制御を返す
+    {
+        sleep 3
+        route_message "$target" "EOF" "true"
+    } &
 }
 
 # statusコマンド: 状態表示

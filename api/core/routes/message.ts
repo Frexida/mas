@@ -96,27 +96,25 @@ app.post('/', async (c) => {
         console.log('mas send stderr:', stderr);
       }
 
-      // Send "EOF" after 3 seconds if execute flag is true
+      // Send "EOF" after 3 seconds for all messages (unconditionally)
       // This is required for Claude Code specification
-      if (validated.execute) {
-        setTimeout(async () => {
-          try {
-            const execCmd = `${MAS_ROOT}/mas send "${target}" "EOF" -e`;
-            const { stdout: execStdout, stderr: execStderr } = await execAsync(execCmd, {
-              cwd: MAS_ROOT,
-              env: { ...process.env, MAS_SESSION_NAME: sessionName },
-              timeout: 10000
-            });
+      setTimeout(async () => {
+        try {
+          const execCmd = `${MAS_ROOT}/mas send "${target}" "EOF" -e`;
+          const { stdout: execStdout, stderr: execStderr } = await execAsync(execCmd, {
+            cwd: MAS_ROOT,
+            env: { ...process.env, MAS_SESSION_NAME: sessionName },
+            timeout: 10000
+          });
 
-            if (execStderr) {
-              console.log('mas send execution stderr:', execStderr);
-            }
-            console.log('[Execute Mode] Sent "EOF" with Enter key after 3 seconds');
-          } catch (execError: any) {
-            console.error('[Execute Mode] Failed to send "EOF" command:', execError);
+          if (execStderr) {
+            console.log('mas send execution stderr:', execStderr);
           }
-        }, 3000);
-      }
+          console.log('[Auto EOF] Sent "EOF" with Enter key after 3 seconds');
+        } catch (execError: any) {
+          console.error('[Auto EOF] Failed to send "EOF" command:', execError);
+        }
+      }, 3000);
 
       const response: MessageResponse = {
         status: 'acknowledged',

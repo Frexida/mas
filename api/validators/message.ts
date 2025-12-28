@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const MessageRequestSchema = z.object({
   target: z.string().min(1, 'Target is required'),
   message: z.string().min(1, 'Message is required'),
-  execute: z.boolean().optional().default(false),
+  execute: z.boolean().optional().default(true),
   session: z.string().min(1, 'Session is required')
 });
 

@@ -113,6 +113,8 @@ Send a message to an agent or group of agents.
   "session": "mas-a85df580", // Required: Target tmux session
   "execute": true          // Optional: Send Enter key after message (default: true)
 }
+
+**Note:** For Claude Code compatibility, "EOF" is automatically sent 3 seconds after every message, regardless of the execute flag. This ensures proper handling of multi-line input and heredoc-style commands.
 ```
 
 **Response (Success):**

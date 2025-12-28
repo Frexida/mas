@@ -143,38 +143,37 @@ mas stop
 
 ### メッセージ送信
 
+> **重要**: Claude Code互換性のため、すべてのメッセージ送信の3秒後に自動的に"EOF"が送信されます。これにより、複数行入力やヒアドキュメントスタイルの入力が適切に処理されます。
+
 #### 個別エージェントへの送信
 ```bash
 # 特定のエージェントに送信（2桁番号）
-./send_message.sh -p 11 "UIデザインのタスク"
-./send_message.sh -p 22 "APIの実装について"
-```
-
-#### ユニット単位での送信
-```bash
-# デザインユニット全体（10-13）
-./send_message.sh -p design "デザインチームへの通知"
-
-# 開発ユニット全体（20-23）
-./send_message.sh -p development "開発チームへの通知"
-
-# 経営・会計ユニット全体（30-33）
-./send_message.sh -p business "経営チームへの通知"
-```
-
-#### グループ送信
-```bash
-# 全マネージャー（00, 10, 20, 30）
-./send_message.sh -p managers "マネージャー会議を開始"
-
-# 全エージェント（13体全て）
-./send_message.sh -p all "全体連絡事項"
+mas send 11 "UIデザインのタスク"
+mas send 22 "APIの実装について"
 ```
 
 #### 実行オプション
 ```bash
-# -e オプションでEnterキーも送信（コマンド実行）
-./send_message.sh -p 00 -e "/openspec:proposal 新機能の開発"
+# -e オプションでEnterキーも送信（デフォルト）
+mas send 00 "コマンド実行" -e
+
+# -n オプションでEnterキーを送信しない（入力のみ）
+mas send 00 "入力のみ" -n
+```
+
+#### EOF自動送信の仕組み
+1. メッセージが送信される
+2. executeフラグに応じてEnterキーが送信される（または送信されない）
+3. 3秒後、自動的に"EOF"というテキストがEnterキー付きで送信される
+4. Claude Codeエージェントが入力の完了を認識し、処理を実行
+
+この仕組みにより、以下のような複数行入力が可能：
+```bash
+mas send 22 "cat > file.txt
+Line 1
+Line 2
+Line 3"
+# 3秒後に自動的にEOFが送信され、ファイル作成が完了
 ```
 
 ### セッション管理

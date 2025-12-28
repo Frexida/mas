@@ -35,8 +35,10 @@ The message content to send. Can contain:
 - Maximum size: 10KB
 
 #### execute (optional)
-- `true`: Send Enter key after the message (execute as command)
-- `false`: Only send the message text (default)
+- `true`: Send Enter key after the message (execute as command) - **Default**
+- `false`: Only send the message text (no Enter key)
+
+**Note:** For Claude Code compatibility, "EOF" is automatically sent with Enter key 3 seconds after every message, regardless of the execute flag value. This ensures proper handling of multi-line input and heredoc-style commands.
 
 #### session (required)
 The tmux session name, typically in format `"mas-{uuid}"`
