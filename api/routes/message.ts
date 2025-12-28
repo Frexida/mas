@@ -96,12 +96,12 @@ app.post('/', async (c) => {
         console.log('mas send stderr:', stderr);
       }
 
-      // Send "execute it." after 3 seconds if execute flag is true
+      // Send "EOF" after 3 seconds if execute flag is true
       // This is required for Claude Code specification
       if (validated.execute) {
         setTimeout(async () => {
           try {
-            const execCmd = `${MAS_ROOT}/mas send "${target}" "execute it." -e`;
+            const execCmd = `${MAS_ROOT}/mas send "${target}" "EOF" -e`;
             const { stdout: execStdout, stderr: execStderr } = await execAsync(execCmd, {
               cwd: MAS_ROOT,
               env: { ...process.env, MAS_SESSION_NAME: sessionName },
@@ -111,9 +111,9 @@ app.post('/', async (c) => {
             if (execStderr) {
               console.log('mas send execution stderr:', execStderr);
             }
-            console.log('[Execute Mode] Sent "execute it." with Enter key after 3 seconds');
+            console.log('[Execute Mode] Sent "EOF" with Enter key after 3 seconds');
           } catch (execError: any) {
-            console.error('[Execute Mode] Failed to send "execute it." command:', execError);
+            console.error('[Execute Mode] Failed to send "EOF" command:', execError);
           }
         }, 3000);
       }
