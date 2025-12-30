@@ -58,23 +58,25 @@ export const UnitConfiguration: React.FC<UnitConfigurationProps> = ({
         </div>
         <div className="grid gap-3">
           {unit.workers.map((worker, index) => (
-            <div key={worker.id} className="relative">
-              <PromptInput
-                id={worker.id}
-                label={`Worker ${index + 1}`}
-                value={worker.prompt}
-                onChange={(prompt) => onWorkerChange(index, prompt)}
-                placeholder="Enter the worker's specific tasks..."
-                role="worker"
-                unitId={unitNumber}
-                workerId={index + 1}
-                showTemplateSelector={true}
-              />
+            <div key={worker.id} className="flex gap-2 items-start">
+              <div className="flex-1">
+                <PromptInput
+                  id={worker.id}
+                  label={`Worker ${index + 1}`}
+                  value={worker.prompt}
+                  onChange={(prompt) => onWorkerChange(index, prompt)}
+                  placeholder="Enter the worker's specific tasks..."
+                  role="worker"
+                  unitId={unitNumber}
+                  workerId={index + 1}
+                  showTemplateSelector={true}
+                />
+              </div>
               {unit.workers.length > 1 && onRemoveWorker && (
                 <button
                   type="button"
                   onClick={() => onRemoveWorker(index)}
-                  className="absolute top-0 right-0 mt-1 mr-1 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                  className="px-3 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors mt-6"
                   title="Remove this worker"
                 >
                   × Remove
