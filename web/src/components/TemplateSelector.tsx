@@ -27,7 +27,7 @@ interface TemplateSelectorProps {
 
 export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   agentId,
-  currentPrompt,
+  currentPrompt: _currentPrompt,
   onTemplateSelect,
   disabled = false,
   className = ''

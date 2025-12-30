@@ -315,7 +315,7 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleSessionRestore(session, false);
+                            handleSessionRestore(session, true);
                           }}
                           disabled={loading || restoringSession !== null}
                           className="flex-1 px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 rounded-md transition-colors disabled:cursor-not-allowed"
@@ -328,13 +328,13 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleSessionRestore(session, true);
+                            handleSessionRestore(session, false);
                           }}
                           disabled={loading || restoringSession !== null}
-                          className="px-3 py-2 text-sm font-medium text-green-700 bg-green-100 hover:bg-green-200 disabled:bg-gray-100 disabled:text-gray-400 rounded-md transition-colors disabled:cursor-not-allowed"
-                          title="Restore with agents"
+                          className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400 rounded-md transition-colors disabled:cursor-not-allowed"
+                          title="Restore without agents"
                         >
-                          +Agents
+                          No Agents
                         </button>
                       </>
                     )}

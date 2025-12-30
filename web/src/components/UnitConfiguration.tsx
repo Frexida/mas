@@ -7,13 +7,17 @@ interface UnitConfigurationProps {
   unit: Unit;
   onManagerChange: (prompt: string) => void;
   onWorkerChange: (workerIndex: number, prompt: string) => void;
+  onAddWorker?: () => void;
+  onRemoveWorker?: (workerIndex: number) => void;
 }
 
 export const UnitConfiguration: React.FC<UnitConfigurationProps> = ({
   unitNumber,
   unit,
   onManagerChange,
-  onWorkerChange
+  onWorkerChange,
+  onAddWorker,
+  onRemoveWorker
 }) => {
   return (
     <div className="border border-gray-200 rounded-lg p-4 mb-4">

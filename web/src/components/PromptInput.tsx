@@ -21,9 +21,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   onChange,
   placeholder = "Enter prompt for this agent...",
   maxLength = 5000,
-  role,
-  unitId,
-  workerId,
+  role: _role,
+  unitId: _unitId,
+  workerId: _workerId,
   showTemplateSelector = false
 }) => {
   const [templateId, setTemplateId] = useState<string | undefined>(undefined);

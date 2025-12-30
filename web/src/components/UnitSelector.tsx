@@ -24,7 +24,7 @@ export const UnitSelector: React.FC<UnitSelectorProps> = ({ value, onChange }) =
         ))}
       </select>
       <p className="mt-1 text-sm text-gray-500">
-        Each unit consists of 1 manager and 3 workers
+        Each unit consists of 1 manager and 1-5 workers (configurable)
       </p>
     </div>
   );
