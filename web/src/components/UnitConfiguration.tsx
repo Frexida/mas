@@ -40,21 +40,47 @@ export const UnitConfiguration: React.FC<UnitConfigurationProps> = ({
       </div>
 
       <div>
-        <h4 className="text-md font-medium text-gray-800 mb-2">Workers</h4>
+        <div className="flex justify-between items-center mb-2">
+          <h4 className="text-md font-medium text-gray-800">
+            Workers ({unit.workers.length})
+          </h4>
+          <div className="flex gap-2">
+            {unit.workers.length < 5 && onAddWorker && (
+              <button
+                type="button"
+                onClick={onAddWorker}
+                className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+              >
+                + Add Worker
+              </button>
+            )}
+          </div>
+        </div>
         <div className="grid gap-3">
           {unit.workers.map((worker, index) => (
-            <PromptInput
-              key={worker.id}
-              id={worker.id}
-              label={`Worker ${index + 1}`}
-              value={worker.prompt}
-              onChange={(prompt) => onWorkerChange(index, prompt)}
-              placeholder="Enter the worker's specific tasks..."
-              role="worker"
-              unitId={unitNumber}
-              workerId={index + 1}
-              showTemplateSelector={true}
-            />
+            <div key={worker.id} className="relative">
+              <PromptInput
+                id={worker.id}
+                label={`Worker ${index + 1}`}
+                value={worker.prompt}
+                onChange={(prompt) => onWorkerChange(index, prompt)}
+                placeholder="Enter the worker's specific tasks..."
+                role="worker"
+                unitId={unitNumber}
+                workerId={index + 1}
+                showTemplateSelector={true}
+              />
+              {unit.workers.length > 1 && onRemoveWorker && (
+                <button
+                  type="button"
+                  onClick={() => onRemoveWorker(index)}
+                  className="absolute top-0 right-0 mt-1 mr-1 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                  title="Remove this worker"
+                >
+                  × Remove
+                </button>
+              )}
+            </div>
           ))}
         </div>
       </div>
