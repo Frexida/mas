@@ -274,8 +274,8 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
                   </div>
                 )}
 
-                {/* View Docs button for active sessions */}
-                {session.status === 'active' && (
+                {/* View Docs button for any session with documents */}
+                {(session.status === 'active' || session.status === 'inactive' || session.status === 'terminated') && (
                   <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
                     <button
                       onClick={(e) => {
@@ -287,16 +287,18 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
                       <FileText className="w-4 h-4" />
                       View Docs
                     </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSessionConnect(session);
-                      }}
-                      className="flex-1 px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Terminal className="w-4 h-4" />
-                      Connect
-                    </button>
+                    {session.status === 'active' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSessionConnect(session);
+                        }}
+                        className="flex-1 px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Terminal className="w-4 h-4" />
+                        Connect
+                      </button>
+                    )}
                   </div>
                 )}
 

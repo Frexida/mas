@@ -1,49 +1,14 @@
 import { Hono } from 'hono';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { templateManager } from '../templates/manager.js';
 
 const app = new Hono();
 
-// ユニット構造の定義
-const UNITS = {
-  'meta': {
-    name: 'Meta Management',
-    agents: [
-      { id: '00', name: 'Meta Manager' }
-    ]
-  },
-  'design': {
-    name: 'Design Unit',
-    agents: [
-      { id: '10', name: 'Design Manager' },
-      { id: '11', name: 'UI Designer' },
-      { id: '12', name: 'UX Designer' },
-      { id: '13', name: 'Visual Designer' }
-    ]
-  },
-  'development': {
-    name: 'Development Unit',
-    agents: [
-      { id: '20', name: 'Dev Manager' },
-      { id: '21', name: 'Frontend Dev' },
-      { id: '22', name: 'Backend Dev' },
-      { id: '23', name: 'DevOps' }
-    ]
-  },
-  'business': {
-    name: 'Business Unit',
-    agents: [
-      { id: '30', name: 'Business Manager' },
-      { id: '31', name: 'Accounting' },
-      { id: '32', name: 'Strategy' },
-      { id: '33', name: 'Analysis' }
-    ]
-  }
-};
-
-// ユニット構造を取得
-app.get('/structure', (c) => {
-  return c.json(UNITS);
+// ユニット構造を取得（動的にテンプレートから生成）
+app.get('/structure', async (c) => {
+  const units = await templateManager.buildUnitsStructure();
+  return c.json(units);
 });
 
 // エージェントのドキュメント一覧を取得
@@ -54,12 +19,14 @@ app.get('/agent/:agentId', async (c) => {
   // セッションIDがある場合はセッション固有のパスを使用
   let unitPath;
   if (sessionId) {
-    const workspaceRoot = process.env.MAS_WORKSPACE_ROOT || process.cwd();
+    // Fix: Use the parent directory of the API (which is the MAS project root)
+    const workspaceRoot = process.env.MAS_WORKSPACE_ROOT || path.join(process.cwd(), '..');
     // OpenSpecの成果物はエージェントのルートディレクトリに生成されるため、openspecディレクトリではなく親ディレクトリを参照
     unitPath = path.join(workspaceRoot, 'sessions', sessionId, 'unit', agentId);
     console.log('[DEBUG] Session docs path:', {
       sessionId,
       workspaceRoot,
+      cwd: process.cwd(),
       unitPath,
       exists: await fs.access(unitPath).then(() => true).catch(() => false)
     });
@@ -115,7 +82,8 @@ app.get('/agent/:agentId/file/*', async (c) => {
   // セッションIDがある場合はセッション固有のパスを使用
   let fullPath;
   if (sessionId) {
-    const workspaceRoot = process.env.MAS_WORKSPACE_ROOT || process.cwd();
+    // Fix: Use the parent directory of the API (which is the MAS project root)
+    const workspaceRoot = process.env.MAS_WORKSPACE_ROOT || path.join(process.cwd(), '..');
     // OpenSpecの成果物はエージェントのルートディレクトリに生成されるため、openspecディレクトリではなく親ディレクトリを参照
     fullPath = path.join(workspaceRoot, 'sessions', sessionId, 'unit', agentId, filePath);
   } else {

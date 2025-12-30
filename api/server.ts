@@ -8,6 +8,7 @@ import runsRoute from './routes/runs.js';
 import statusRoute from './routes/status.js';
 import sessionsRoute from './routes/sessions.js';
 import docsRoute from './core/routes/docs.js';
+import templatesRoute from './core/routes/templates.js';
 
 const app = new Hono();
 
@@ -74,6 +75,7 @@ app.route('/sessions', sessionsRoute);
 // Alias for WebUI compatibility
 app.route('/session', sessionsRoute);
 app.route('/docs', docsRoute);
+app.route('/templates', templatesRoute);
 
 // Start server
 const port = Number(process.env.MAS_API_PORT || 8765);

@@ -2,7 +2,7 @@
  * Session management utilities
  */
 
-import { readFile, access, readdir, stat } from 'fs/promises';
+import { readFile, access, readdir, stat, writeFile, rename, unlink } from 'fs/promises';
 import { constants } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -23,10 +23,10 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 新構造: ワークスペースルートを環境変数から取得、またはカレントディレクトリを使用
+// 新構造: ワークスペースルートを環境変数から取得、またはプロジェクトルートを使用
 const MAS_WORKSPACE_ROOT = process.env.MAS_WORKSPACE_ROOT ||
                           process.env.MAS_PROJECT_ROOT ||
-                          process.cwd();
+                          path.resolve(__dirname, '../..');
 // 後方互換性のためMAS_ROOTを維持
 const MAS_ROOT = MAS_WORKSPACE_ROOT;
 
@@ -58,18 +58,47 @@ export async function readIsolatedSessionMetadata(sessionId: string): Promise<an
 }
 
 /**
- * Read sessions index file
+ * Read sessions index file with retry logic
  */
 export async function readSessionsIndex(): Promise<any> {
   const indexFile = path.join(MAS_ROOT, 'sessions', '.sessions.index');
 
-  try {
-    await access(indexFile, constants.F_OK);
-    const content = await readFile(indexFile, 'utf-8');
-    return JSON.parse(content);
-  } catch (error) {
-    return { version: '1.0', sessions: [], lastUpdated: '' };
+  // Retry logic for race conditions
+  let retries = 3;
+  let lastError: any;
+
+  while (retries > 0) {
+    try {
+      await access(indexFile, constants.F_OK);
+      const content = await readFile(indexFile, 'utf-8');
+
+      // Validate content is not empty
+      if (!content || content.trim().length === 0) {
+        throw new Error('Sessions index file is empty');
+      }
+
+      const parsed = JSON.parse(content);
+
+      // Validate structure
+      if (!parsed.version || !Array.isArray(parsed.sessions)) {
+        throw new Error('Invalid sessions index structure');
+      }
+
+      return parsed;
+    } catch (error: any) {
+      lastError = error;
+      retries--;
+
+      if (retries > 0) {
+        // Wait a bit before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, (3 - retries) * 100));
+      }
+    }
   }
+
+  // If all retries failed, log the error and return default
+  console.error('Failed to read sessions index after retries:', lastError);
+  return { version: '1.0', sessions: [], lastUpdated: '' };
 }
 
 /**
@@ -111,14 +140,46 @@ export async function getSessionStatus(tmuxSessionName: string): Promise<Session
 }
 
 /**
+ * Discover all session directories from filesystem
+ */
+async function discoverAllSessionDirectories(): Promise<string[]> {
+  const sessionsDir = path.join(MAS_ROOT, 'sessions');
+  const directories: string[] = [];
+
+  try {
+    const entries = await readdir(sessionsDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      // Check if it's a directory and looks like a UUID
+      if (entry.isDirectory() && isValidUUID(entry.name)) {
+        // Verify it has a .session file
+        const sessionFile = path.join(sessionsDir, entry.name, '.session');
+        try {
+          await access(sessionFile, constants.F_OK);
+          directories.push(entry.name);
+        } catch {
+          // No .session file, skip
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to scan session directories:', error);
+  }
+
+  return directories;
+}
+
+/**
  * Get all MAS sessions (all are isolated now)
  */
 export async function getAllSessions(): Promise<SessionInfo[]> {
   const sessions: SessionInfo[] = [];
+  const processedSessionIds = new Set<string>();
 
   // Read sessions from sessions index
   const sessionsIndex = await readSessionsIndex();
 
+  // Process indexed sessions first
   for (const indexEntry of sessionsIndex.sessions || []) {
     // Read session metadata
     const metadata = await readIsolatedSessionMetadata(indexEntry.sessionId);
@@ -140,6 +201,46 @@ export async function getAllSessions(): Promise<SessionInfo[]> {
       };
 
       sessions.push(sessionInfo);
+      processedSessionIds.add(indexEntry.sessionId);
+    }
+  }
+
+  // Discover and add any sessions not in the index
+  const allDirectories = await discoverAllSessionDirectories();
+
+  for (const sessionId of allDirectories) {
+    if (!processedSessionIds.has(sessionId)) {
+      // This session exists on filesystem but not in index
+      const metadata = await readIsolatedSessionMetadata(sessionId);
+
+      if (metadata) {
+        const tmuxSessionName = metadata.TMUX_SESSION || `mas-${sessionId.substring(0, 8)}`;
+
+        // For unindexed sessions, check tmux status but don't fail if tmux doesn't exist
+        let status: SessionStatus = 'terminated';
+        let agents: any[] = [];
+
+        try {
+          status = await getSessionStatus(tmuxSessionName);
+          agents = await getAgentsStatus(tmuxSessionName);
+        } catch {
+          // If tmux operations fail, assume terminated
+          status = 'terminated';
+        }
+
+        const sessionInfo: SessionInfo = {
+          sessionId: sessionId,
+          tmuxSession: tmuxSessionName,
+          status,
+          workingDir: metadata.SESSION_DIR || path.join(MAS_ROOT, 'sessions', sessionId),
+          startedAt: metadata.CREATED_AT || 'Unknown',
+          agentCount: agents.filter(a => a.status === 'running').length,
+          httpServerStatus: 'stopped',
+          restorable: status === 'terminated'
+        };
+
+        sessions.push(sessionInfo);
+      }
     }
   }
 
@@ -256,6 +357,12 @@ export async function restoreSession(
   const sessionsIndex = await readSessionsIndex();
   let fullSessionId = sessionId;
 
+  // Debug logging
+  console.log('[DEBUG] MAS_WORKSPACE_ROOT:', MAS_WORKSPACE_ROOT);
+  console.log('[DEBUG] Sessions index path:', path.join(MAS_ROOT, 'sessions', '.sessions.index'));
+  console.log('[DEBUG] Sessions index content:', JSON.stringify(sessionsIndex, null, 2));
+  console.log('[DEBUG] Looking for sessionId:', sessionId);
+
   if (sessionsIndex?.sessions) {
     const matchedSession = sessionsIndex.sessions.find((s: any) =>
       s.sessionId === sessionId || s.sessionId.startsWith(sessionId)
@@ -354,7 +461,7 @@ export async function restoreSession(
 }
 
 /**
- * Helper function to update sessions index
+ * Helper function to update sessions index with locking
  */
 async function updateSessionsIndex(
   action: 'update',
@@ -363,9 +470,53 @@ async function updateSessionsIndex(
   value: any
 ): Promise<void> {
   const indexPath = path.join(MAS_WORKSPACE_ROOT, 'sessions', '.sessions.index');
+  const lockPath = `${indexPath}.lock`;
+  const tempPath = `${indexPath}.tmp.${Date.now()}`;
+
+  // Simple file-based lock with timeout
+  const acquireLock = async (maxRetries = 50): Promise<boolean> => {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        // Try to create lock file exclusively
+        await writeFile(lockPath, process.pid.toString(), { flag: 'wx' });
+        return true;
+      } catch (error: any) {
+        if (error.code === 'EEXIST') {
+          // Lock exists, wait and retry
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } else {
+          throw error;
+        }
+      }
+    }
+    return false;
+  };
+
+  const releaseLock = async () => {
+    try {
+      await unlink(lockPath);
+    } catch (error) {
+      // Ignore errors when releasing lock
+    }
+  };
+
+  let lockAcquired = false;
 
   try {
+    // Acquire lock
+    lockAcquired = await acquireLock();
+    if (!lockAcquired) {
+      throw new Error('Failed to acquire lock for sessions index update');
+    }
+
+    // Read current content with validation
     const indexContent = await readFile(indexPath, 'utf-8');
+
+    // Validate content is not empty
+    if (!indexContent || indexContent.trim().length === 0) {
+      throw new Error('Sessions index file is empty during update');
+    }
+
     const index = JSON.parse(indexContent);
 
     if (index.sessions) {
@@ -374,15 +525,22 @@ async function updateSessionsIndex(
         session[field] = value;
         index.lastUpdated = new Date().toISOString();
 
-        // Atomic write
-        const tempPath = `${indexPath}.tmp`;
-        await require('fs/promises').writeFile(tempPath, JSON.stringify(index, null, 2));
-        await require('fs/promises').rename(tempPath, indexPath);
+        // Atomic write with unique temp file
+        await writeFile(tempPath, JSON.stringify(index, null, 2));
+        await rename(tempPath, indexPath);
       }
     }
   } catch (error) {
     console.error('Failed to update sessions index:', error);
+    // Clean up temp file if it exists
+    try {
+      await unlink(tempPath);
+    } catch {}
     throw error;
+  } finally {
+    if (lockAcquired) {
+      await releaseLock();
+    }
   }
 }
 
@@ -398,7 +556,7 @@ export async function stopSession(sessionId: string, force: boolean = false): Pr
       const metadataFile = path.join(MAS_ROOT, 'sessions', sessionId, '.session');
       const updatedMetadata = await readFile(metadataFile, 'utf-8');
       const updated = updatedMetadata.replace(/STATUS=.*/, 'STATUS=stopped');
-      await require('fs/promises').writeFile(metadataFile, updated);
+      await writeFile(metadataFile, updated);
 
       // Update sessions index
       await updateSessionsIndex('update', sessionId, 'status', 'stopped');
@@ -443,5 +601,5 @@ async function updateSessionsIndexLegacy(action: string, sessionId: string, fiel
   }
 
   index.lastUpdated = new Date().toISOString();
-  await require('fs/promises').writeFile(indexFile, JSON.stringify(index, null, 2));
+  await writeFile(indexFile, JSON.stringify(index, null, 2));
 }

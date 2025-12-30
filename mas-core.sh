@@ -636,19 +636,19 @@ cmd_list() {
         printf "  Unit 00: %-25s (Model: %s)\n" "${AGENT_NAMES[00]}" "${AGENT_MODELS[00]}"
         echo ""
 
-        echo "Design Unit:"
+        echo "Unit 1:"
         for i in 10 11 12 13; do
             printf "  Unit %s: %-25s (Model: %s)\n" "$i" "${AGENT_NAMES[$i]}" "${AGENT_MODELS[$i]}"
         done
         echo ""
 
-        echo "Development Unit:"
+        echo "Unit 2:"
         for i in 20 21 22 23; do
             printf "  Unit %s: %-25s (Model: %s)\n" "$i" "${AGENT_NAMES[$i]}" "${AGENT_MODELS[$i]}"
         done
         echo ""
 
-        echo "Business Unit:"
+        echo "Unit 3:"
         for i in 30 31 32 33; do
             printf "  Unit %s: %-25s (Model: %s)\n" "$i" "${AGENT_NAMES[$i]}" "${AGENT_MODELS[$i]}"
         done

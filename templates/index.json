@@ -1,0 +1,122 @@
+{
+  "version": "1.0.0",
+  "templates": [
+    {
+      "id": "00-meta-manager",
+      "agentId": "00",
+      "name": "Meta Manager",
+      "nameJa": "メタマネージャー",
+      "category": "meta",
+      "unit": "meta",
+      "path": "system/agents/00-meta-manager.json"
+    },
+    {
+      "id": "10-design-manager",
+      "agentId": "10",
+      "name": "Design Manager",
+      "nameJa": "デザインマネージャー",
+      "category": "manager",
+      "unit": "design",
+      "path": "system/agents/10-design-manager.json"
+    },
+    {
+      "id": "11-ui-designer",
+      "agentId": "11",
+      "name": "UI Designer",
+      "nameJa": "UIデザイナー",
+      "category": "worker",
+      "unit": "design",
+      "path": "system/agents/11-ui-designer.json"
+    },
+    {
+      "id": "12-ux-designer",
+      "agentId": "12",
+      "name": "UX Designer",
+      "nameJa": "UXデザイナー",
+      "category": "worker",
+      "unit": "design",
+      "path": "system/agents/12-ux-designer.json"
+    },
+    {
+      "id": "13-visual-designer",
+      "agentId": "13",
+      "name": "Visual Designer",
+      "nameJa": "ビジュアルデザイナー",
+      "category": "worker",
+      "unit": "design",
+      "path": "system/agents/13-visual-designer.json"
+    },
+    {
+      "id": "20-dev-manager",
+      "agentId": "20",
+      "name": "Dev Manager",
+      "nameJa": "開発マネージャー",
+      "category": "manager",
+      "unit": "development",
+      "path": "system/agents/20-dev-manager.json"
+    },
+    {
+      "id": "21-frontend-developer",
+      "agentId": "21",
+      "name": "Frontend Developer",
+      "nameJa": "フロントエンド開発者",
+      "category": "worker",
+      "unit": "development",
+      "path": "system/agents/21-frontend-developer.json"
+    },
+    {
+      "id": "22-backend-developer",
+      "agentId": "22",
+      "name": "Backend Developer",
+      "nameJa": "バックエンド開発者",
+      "category": "worker",
+      "unit": "development",
+      "path": "system/agents/22-backend-developer.json"
+    },
+    {
+      "id": "23-devops-engineer",
+      "agentId": "23",
+      "name": "DevOps Engineer",
+      "nameJa": "DevOpsエンジニア",
+      "category": "worker",
+      "unit": "development",
+      "path": "system/agents/23-devops-engineer.json"
+    },
+    {
+      "id": "30-business-manager",
+      "agentId": "30",
+      "name": "Business Manager",
+      "nameJa": "経営・会計マネージャー",
+      "category": "manager",
+      "unit": "business",
+      "path": "system/agents/30-business-manager.json"
+    },
+    {
+      "id": "31-accounting",
+      "agentId": "31",
+      "name": "Accounting",
+      "nameJa": "会計担当",
+      "category": "worker",
+      "unit": "business",
+      "path": "system/agents/31-accounting.json"
+    },
+    {
+      "id": "32-strategy",
+      "agentId": "32",
+      "name": "Strategy",
+      "nameJa": "戦略担当",
+      "category": "worker",
+      "unit": "business",
+      "path": "system/agents/32-strategy.json"
+    },
+    {
+      "id": "33-analysis",
+      "agentId": "33",
+      "name": "Analysis",
+      "nameJa": "分析担当",
+      "category": "worker",
+      "unit": "business",
+      "path": "system/agents/33-analysis.json"
+    }
+  ]
+}

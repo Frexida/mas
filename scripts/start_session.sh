@@ -139,17 +139,17 @@ tmux new-window -t "$MAS_SESSION_NAME:1" -n "meta-manager" -c "$SESSION_DIR"
 # 各ユニットの存在をチェックして必要に応じてウィンドウを作成
 WINDOW_NUM=2
 if [ -d "$SESSION_DIR/unit/10" ] || [ -d "$SESSION_DIR/unit/11" ] || [ -d "$SESSION_DIR/unit/12" ] || [ -d "$SESSION_DIR/unit/13" ]; then
-    tmux new-window -t "$MAS_SESSION_NAME:$WINDOW_NUM" -n "design" -c "$SESSION_DIR"
+    tmux new-window -t "$MAS_SESSION_NAME:$WINDOW_NUM" -n "unit1" -c "$SESSION_DIR"
     ((WINDOW_NUM++))
 fi
 
 if [ -d "$SESSION_DIR/unit/20" ] || [ -d "$SESSION_DIR/unit/21" ] || [ -d "$SESSION_DIR/unit/22" ] || [ -d "$SESSION_DIR/unit/23" ]; then
-    tmux new-window -t "$MAS_SESSION_NAME:$WINDOW_NUM" -n "development" -c "$SESSION_DIR"
+    tmux new-window -t "$MAS_SESSION_NAME:$WINDOW_NUM" -n "unit2" -c "$SESSION_DIR"
     ((WINDOW_NUM++))
 fi
 
 if [ -d "$SESSION_DIR/unit/30" ] || [ -d "$SESSION_DIR/unit/31" ] || [ -d "$SESSION_DIR/unit/32" ] || [ -d "$SESSION_DIR/unit/33" ]; then
-    tmux new-window -t "$MAS_SESSION_NAME:$WINDOW_NUM" -n "business" -c "$SESSION_DIR"
+    tmux new-window -t "$MAS_SESSION_NAME:$WINDOW_NUM" -n "unit3" -c "$SESSION_DIR"
     ((WINDOW_NUM++))
 fi
 
@@ -162,18 +162,18 @@ print_info "Starting agents..."
 # エージェントのモデル設定（デフォルト）
 declare -A AGENT_MODELS=(
     ["00"]="sonnet"  # Meta Manager
-    ["10"]="sonnet"  # Design Manager
-    ["11"]="sonnet"  # UI Designer
-    ["12"]="sonnet"  # UX Designer
-    ["13"]="sonnet"  # Visual Designer
-    ["20"]="sonnet"  # Dev Manager
-    ["21"]="sonnet"  # Frontend Dev
-    ["22"]="sonnet"  # Backend Dev
-    ["23"]="sonnet"  # DevOps
-    ["30"]="sonnet"  # Business Manager
-    ["31"]="sonnet"  # Accounting
-    ["32"]="sonnet"  # Strategy
-    ["33"]="sonnet"  # Analytics
+    ["10"]="sonnet"  # Unit1 Manager
+    ["11"]="sonnet"  # Unit1 Worker 1
+    ["12"]="sonnet"  # Unit1 Worker 2
+    ["13"]="sonnet"  # Unit1 Worker 3
+    ["20"]="sonnet"  # Unit2 Manager
+    ["21"]="sonnet"  # Unit2 Worker 1
+    ["22"]="sonnet"  # Unit2 Worker 2
+    ["23"]="sonnet"  # Unit2 Worker 3
+    ["30"]="sonnet"  # Unit3 Manager
+    ["31"]="sonnet"  # Unit3 Worker 1
+    ["32"]="sonnet"  # Unit3 Worker 2
+    ["33"]="sonnet"  # Unit3 Worker 3
 )
 
 # エージェント起動関数
@@ -199,7 +199,7 @@ start_agent_in_pane() {
 # Meta Manager (00) - Window 1
 start_agent_in_pane 1 0 "00"
 
-# Design Unit - Window 2
+# Unit 1 - Window 2
 tmux split-window -t "$MAS_SESSION_NAME:2" -h
 tmux split-window -t "$MAS_SESSION_NAME:2.0" -v
 tmux split-window -t "$MAS_SESSION_NAME:2.2" -v
@@ -208,7 +208,7 @@ start_agent_in_pane 2 1 "11"
 start_agent_in_pane 2 2 "12"
 start_agent_in_pane 2 3 "13"
 
-# Development Unit - Window 3
+# Unit 2 - Window 3
 tmux split-window -t "$MAS_SESSION_NAME:3" -h
 tmux split-window -t "$MAS_SESSION_NAME:3.0" -v
 tmux split-window -t "$MAS_SESSION_NAME:3.2" -v
@@ -217,7 +217,7 @@ start_agent_in_pane 3 1 "21"
 start_agent_in_pane 3 2 "22"
 start_agent_in_pane 3 3 "23"
 
-# Business Unit - Window 4
+# Unit 3 - Window 4
 tmux split-window -t "$MAS_SESSION_NAME:4" -h
 tmux split-window -t "$MAS_SESSION_NAME:4.0" -v
 tmux split-window -t "$MAS_SESSION_NAME:4.2" -v

@@ -1,7 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import TemplateSelector from './TemplateSelector';
-import type { Template, TemplateRole } from '../types/templates';
-import { generatePromptFromTemplate } from '../utils/templates';
 
 interface PromptInputProps {
   id: string;
@@ -10,7 +8,7 @@ interface PromptInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   maxLength?: number;
-  role?: TemplateRole;
+  role?: string;
   unitId?: number;
   workerId?: number;
   showTemplateSelector?: boolean;
@@ -28,34 +26,29 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   workerId,
   showTemplateSelector = false
 }) => {
-  const [showResetButton, setShowResetButton] = useState(false);
-  const [originalTemplate, setOriginalTemplate] = useState<Template | null>(null);
+  const [templateId, setTemplateId] = useState<string | undefined>(undefined);
+  const [originalValue, setOriginalValue] = useState<string>('');
 
-  const handleTemplateSelect = useCallback((template: Template) => {
-    const variables = {
-      unitId,
-      workerId,
-      agentId: id
-    };
-    const prompt = generatePromptFromTemplate(template, variables, true);
+  const handleTemplateSelect = useCallback((prompt: string, templateId?: string) => {
     onChange(prompt);
-    setOriginalTemplate(template);
-    setShowResetButton(true);
-  }, [id, unitId, workerId, onChange]);
+    setTemplateId(templateId);
+    if (templateId) {
+      setOriginalValue(prompt);
+    }
+  }, [onChange]);
 
   const handleReset = () => {
-    if (originalTemplate) {
-      handleTemplateSelect(originalTemplate);
+    if (originalValue) {
+      onChange(originalValue);
     }
   };
 
   const handleTextChange = (newValue: string) => {
     onChange(newValue);
-    // Keep reset button visible if we have an original template
-    if (originalTemplate) {
-      setShowResetButton(true);
-    }
   };
+
+  // Determine if the current value differs from the template
+  const hasBeenModified = templateId && originalValue && value !== originalValue;
 
   return (
     <div className="mb-4">
@@ -63,13 +56,12 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         {label} <span className="text-gray-400">(ID: {id})</span>
       </label>
 
-      {showTemplateSelector && role && (
+      {showTemplateSelector && (
         <div className="mb-2">
           <TemplateSelector
-            role={role}
-            onTemplateSelect={handleTemplateSelect}
-            currentPrompt={value}
             agentId={id}
+            currentPrompt={value}
+            onTemplateSelect={handleTemplateSelect}
           />
         </div>
       )}
@@ -80,18 +72,18 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         onChange={(e) => handleTextChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border resize-y min-h-[80px]"
+        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border resize-y min-h-[120px]"
       />
 
       <div className="mt-1 flex justify-between items-center">
         <div>
-          {showResetButton && originalTemplate && (
+          {hasBeenModified && (
             <button
               type="button"
               onClick={handleReset}
-              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+              className="text-xs text-blue-600 hover:text-blue-800"
             >
-              デフォルトに戻す
+              テンプレートに戻す
             </button>
           )}
         </div>

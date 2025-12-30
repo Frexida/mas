@@ -1,123 +1,244 @@
-import React, { useState, useEffect } from 'react';
-import type { Template, TemplateRole, TemplateLanguage } from '../types/templates';
-import {
-  getTemplate,
-  detectLanguage,
-  getRoleDisplayName
-} from '../utils/templates';
-import { getTemplatePreferences } from '../services/templateStorage';
-import TemplatePreview from './TemplatePreview';
+/**
+ * TemplateSelector Component
+ * Allows users to select and apply agent templates
+ */
 
-interface TemplateSelectorProps {
-  role: TemplateRole;
-  onTemplateSelect: (template: Template) => void;
-  currentPrompt?: string;
-  agentId?: string; // Currently unused but kept for future use
+import React, { useState, useEffect } from 'react';
+import { ChevronDown, FileText, Plus, Check } from 'lucide-react';
+
+interface Template {
+  id: string;
+  name: string;
+  nameJa: string;
+  category: 'meta' | 'manager' | 'worker';
+  unit: 'meta' | 'design' | 'development' | 'business';
+  agentId: string;
+  description: string;
+  descriptionJa: string;
 }
 
-const TemplateSelector: React.FC<TemplateSelectorProps> = ({
-  role,
+interface TemplateSelectorProps {
+  agentId: string;
+  currentPrompt: string;
+  onTemplateSelect: (prompt: string, templateId?: string) => void;
+  disabled?: boolean;
+  className?: string;
+}
+
+export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
+  agentId,
+  currentPrompt,
   onTemplateSelect,
-  currentPrompt
+  disabled = false,
+  className = ''
 }) => {
-  const [language, setLanguage] = useState<TemplateLanguage>('ja');
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('custom');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
+  // Load available templates
   useEffect(() => {
-    // Load user preferences
-    const preferences = getTemplatePreferences();
-    setLanguage(preferences.defaultLanguage || detectLanguage());
+    loadTemplates();
   }, []);
 
-  useEffect(() => {
-    // Update selected template when language or role changes
-    const template = getTemplate(role, language);
-    setSelectedTemplate(template || null);
-  }, [role, language]);
-
-  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newLang = e.target.value as TemplateLanguage;
-    setLanguage(newLang);
-  };
-
-  const handleUseTemplate = () => {
-    if (selectedTemplate) {
-      onTemplateSelect(selectedTemplate);
+  const loadTemplates = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8765'}/templates`);
+      if (response.ok) {
+        const data = await response.json();
+        setTemplates(data.templates || []);
+      }
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handlePreview = () => {
-    setShowPreview(true);
+  const handleTemplateSelect = async (templateId: string) => {
+    setSelectedTemplate(templateId);
+    setIsDropdownOpen(false);
+
+    if (templateId === 'custom') {
+      // Clear prompt for custom input
+      onTemplateSelect('', undefined);
+      setPreviewContent(null);
+      return;
+    }
+
+    // Find the selected template
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+
+    try {
+      // Load the full template content
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:8765'}/templates/agent/${template.agentId}/prompt?lang=ja`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        onTemplateSelect(data.prompt, templateId);
+        setPreviewContent(data.prompt);
+      }
+    } catch (error) {
+      console.error('Failed to load template prompt:', error);
+    }
   };
 
-  const hasContent = currentPrompt && currentPrompt.trim().length > 0;
+  const togglePreview = () => {
+    if (previewContent) {
+      setShowPreview(!showPreview);
+    }
+  };
+
+  // Find template for current agent
+  const agentTemplates = templates.filter(t => t.agentId === agentId);
+  const recommendedTemplate = agentTemplates.length > 0 ? agentTemplates[0] : null;
+
+  // Get current selection display text
+  const getSelectionText = () => {
+    if (selectedTemplate === 'custom') {
+      return 'カスタム（直接入力）';
+    }
+    const template = templates.find(t => t.id === selectedTemplate);
+    return template ? `${template.nameJa} (${template.name})` : '選択してください';
+  };
 
   return (
-    <div className="template-selector">
-      <div className="flex items-center gap-2 mb-2">
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          テンプレート:
+    <div className={`template-selector ${className}`}>
+      {/* Template Selection Dropdown */}
+      <div className="relative">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          テンプレート選択
         </label>
 
-        <select
-          value={language}
-          onChange={handleLanguageChange}
-          className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600
-                   rounded-md focus:ring-blue-500 focus:border-blue-500
-                   dark:bg-gray-700 dark:text-gray-200"
-        >
-          <option value="ja">日本語</option>
-          <option value="en">English</option>
-        </select>
-
-        {selectedTemplate && (
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            {getRoleDisplayName(role, language)}
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2">
         <button
-          type="button"
-          onClick={handleUseTemplate}
-          disabled={!selectedTemplate}
-          className="px-3 py-1 text-sm bg-blue-500 text-white rounded-md
-                   hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed
-                   transition-colors duration-200"
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          disabled={disabled || loading}
+          className={`w-full px-4 py-2 text-left bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            disabled ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         >
-          {hasContent ? 'テンプレートで置換' : 'テンプレートを使用'}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <FileText className="w-4 h-4 text-gray-500" />
+              <span>{getSelectionText()}</span>
+            </div>
+            <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+          </div>
         </button>
 
-        {selectedTemplate && (
-          <button
-            type="button"
-            onClick={handlePreview}
-            className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md
-                     hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300
-                     dark:hover:bg-gray-600 transition-colors duration-200"
-          >
-            プレビュー
-          </button>
-        )}
+        {/* Dropdown Menu */}
+        {isDropdownOpen && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+            <div className="py-1">
+              {/* Custom Option */}
+              <button
+                onClick={() => handleTemplateSelect('custom')}
+                className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center justify-between"
+              >
+                <div className="flex items-center space-x-2">
+                  <Plus className="w-4 h-4 text-gray-500" />
+                  <span>カスタム（直接入力）</span>
+                </div>
+                {selectedTemplate === 'custom' && <Check className="w-4 h-4 text-blue-600" />}
+              </button>
 
-        {hasContent && (
-          <span className="text-xs text-orange-600 dark:text-orange-400">
-            ※現在の内容が置き換えられます
-          </span>
+              {/* Separator */}
+              {templates.length > 0 && (
+                <div className="border-t border-gray-200 my-1" />
+              )}
+
+              {/* Recommended Template */}
+              {recommendedTemplate && (
+                <>
+                  <div className="px-4 py-1 text-xs font-semibold text-gray-500 uppercase">
+                    推奨テンプレート
+                  </div>
+                  <button
+                    onClick={() => handleTemplateSelect(recommendedTemplate.id)}
+                    className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="font-medium">{recommendedTemplate.nameJa}</div>
+                      <div className="text-sm text-gray-500">{recommendedTemplate.descriptionJa}</div>
+                    </div>
+                    {selectedTemplate === recommendedTemplate.id && <Check className="w-4 h-4 text-blue-600" />}
+                  </button>
+                  <div className="border-t border-gray-200 my-1" />
+                </>
+              )}
+
+              {/* All Templates Grouped by Unit */}
+              <div className="px-4 py-1 text-xs font-semibold text-gray-500 uppercase">
+                すべてのテンプレート
+              </div>
+              {['meta', 'design', 'development', 'business'].map(unit => {
+                const unitTemplates = templates.filter(t => t.unit === unit);
+                if (unitTemplates.length === 0) return null;
+
+                return (
+                  <div key={unit}>
+                    <div className="px-4 py-1 text-xs text-gray-400">
+                      {unit === 'meta' && 'メタ管理'}
+                      {unit === 'design' && 'デザインユニット'}
+                      {unit === 'development' && '開発ユニット'}
+                      {unit === 'business' && 'ビジネスユニット'}
+                    </div>
+                    {unitTemplates.map(template => (
+                      <button
+                        key={template.id}
+                        onClick={() => handleTemplateSelect(template.id)}
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center justify-between"
+                      >
+                        <div className="ml-2">
+                          <div className="text-sm">
+                            <span className="font-mono text-xs text-gray-500 mr-2">{template.agentId}</span>
+                            {template.nameJa}
+                          </div>
+                        </div>
+                        {selectedTemplate === template.id && <Check className="w-4 h-4 text-blue-600" />}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
 
-      {showPreview && selectedTemplate && (
-        <TemplatePreview
-          template={selectedTemplate}
-          onClose={() => setShowPreview(false)}
-          onUse={() => {
-            handleUseTemplate();
-            setShowPreview(false);
-          }}
-        />
+      {/* Preview Section */}
+      {previewContent && selectedTemplate !== 'custom' && (
+        <div className="mt-3">
+          <button
+            onClick={togglePreview}
+            className="text-sm text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+          >
+            <FileText className="w-4 h-4" />
+            <span>{showPreview ? 'プレビューを隠す' : 'テンプレート内容を確認'}</span>
+          </button>
+
+          {showPreview && (
+            <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
+              <pre className="text-xs whitespace-pre-wrap font-mono text-gray-700 max-h-64 overflow-y-auto">
+                {previewContent}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Info Message */}
+      {selectedTemplate !== 'custom' && (
+        <p className="mt-2 text-sm text-gray-600">
+          テンプレートが適用されました。必要に応じて下のテキストエリアで編集できます。
+        </p>
       )}
     </div>
   );

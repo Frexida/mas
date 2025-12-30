@@ -300,18 +300,18 @@ get_agent_window_pane() {
 
     case "$unit_num" in
         00) echo "meta.0" ;;
-        10) echo "design.0" ;;
-        11) echo "design.1" ;;
-        12) echo "design.2" ;;
-        13) echo "design.3" ;;
-        20) echo "development.0" ;;
-        21) echo "development.1" ;;
-        22) echo "development.2" ;;
-        23) echo "development.3" ;;
-        30) echo "business.0" ;;
-        31) echo "business.1" ;;
-        32) echo "business.2" ;;
-        33) echo "business.3" ;;
+        10) echo "unit1.0" ;;
+        11) echo "unit1.1" ;;
+        12) echo "unit1.2" ;;
+        13) echo "unit1.3" ;;
+        20) echo "unit2.0" ;;
+        21) echo "unit2.1" ;;
+        22) echo "unit2.2" ;;
+        23) echo "unit2.3" ;;
+        30) echo "unit3.0" ;;
+        31) echo "unit3.1" ;;
+        32) echo "unit3.2" ;;
+        33) echo "unit3.3" ;;
         *) echo "" ;;
     esac
 }

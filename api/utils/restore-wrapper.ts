@@ -5,8 +5,11 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 const execAsync = promisify(exec);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export interface RestoreOptions {
   sessionId: string;
@@ -33,9 +36,10 @@ export async function executeRestore(options: RestoreOptions): Promise<RestoreRe
 
   try {
     // Construct the shell command
-    const scriptPath = path.join(process.cwd(), 'lib', 'session-restore.sh');
+    const MAS_ROOT = process.env.MAS_ROOT || path.resolve(__dirname, '../..');
+    const scriptPath = path.join(MAS_ROOT, 'lib', 'session-restore.sh');
     const command = [
-      `/bin/bash -c "`,
+      `bash -c "`,
       `source ${scriptPath};`,
       `export MAS_WORKSPACE_ROOT='${workspaceRoot}';`,
       `restore_session '${sessionId}' '${startAgents ? 'true' : 'false'}'"`,
@@ -52,6 +56,21 @@ export async function executeRestore(options: RestoreOptions): Promise<RestoreRe
     });
 
     // Parse the output for success/failure
+    // Check if session already exists (this is informational, not an error)
+    // Check both stdout and stderr as the message might appear in either
+    const combinedOutput = stdout + stderr;
+    if (combinedOutput.includes('Session already exists')) {
+      // This is exit code 2 from the bash script - session exists but isn't an error
+      return {
+        success: false,
+        error: 'Session already exists and is running',
+        details: {
+          code: 'SESSION_EXISTS',
+          message: 'The tmux session is already running. Please stop it first or connect to the existing session.'
+        }
+      };
+    }
+
     if (stderr && stderr.includes('[ERROR]')) {
       return {
         success: false,
@@ -110,10 +129,11 @@ export async function updateSessionStatus(
   workspaceRoot?: string
 ): Promise<void> {
   const workspace = workspaceRoot || process.env.MAS_WORKSPACE_ROOT || process.cwd();
-  const scriptPath = path.join(process.cwd(), 'lib', 'session-restore.sh');
+  const MAS_ROOT = process.env.MAS_ROOT || path.resolve(__dirname, '../..');
+  const scriptPath = path.join(MAS_ROOT, 'lib', 'session-restore.sh');
 
   const command = [
-    `/bin/bash -c "`,
+    `bash -c "`,
     `source ${scriptPath};`,
     `export MAS_WORKSPACE_ROOT='${workspace}';`,
     `update_session_status '${sessionId}' '${status}'"`,

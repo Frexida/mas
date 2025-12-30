@@ -1,6 +1,23 @@
 #!/bin/bash
 # Session restoration utilities
 
+# Helper functions for output
+print_error() {
+    echo -e "\033[1;31m[ERROR]\033[0m $1" >&2
+}
+
+print_warning() {
+    echo -e "\033[1;33m[WARNING]\033[0m $1" >&2
+}
+
+print_info() {
+    echo -e "\033[1;34m[INFO]\033[0m $1"
+}
+
+print_success() {
+    echo -e "\033[1;32m[SUCCESS]\033[0m $1"
+}
+
 # Exit codes for structured error handling
 readonly EXIT_SUCCESS=0
 readonly EXIT_METADATA_NOT_FOUND=1
@@ -140,21 +157,36 @@ sync_session_statuses() {
             # Check if attached
             local is_attached=$(tmux list-sessions -F "#{session_name}:#{session_attached}" | grep "^${tmux_session}:" | cut -d: -f2)
             if [[ "$is_attached" == "1" ]]; then
-                jq ".sessions[$i].status = \"active\"" "$temp_index" > "${temp_index}.tmp"
+                jq ".sessions[$i].status = \"active\"" "$temp_index" > "${temp_index}.tmp" 2>/dev/null
             else
-                jq ".sessions[$i].status = \"inactive\"" "$temp_index" > "${temp_index}.tmp"
+                jq ".sessions[$i].status = \"inactive\"" "$temp_index" > "${temp_index}.tmp" 2>/dev/null
             fi
         else
-            jq ".sessions[$i].status = \"terminated\"" "$temp_index" > "${temp_index}.tmp"
+            jq ".sessions[$i].status = \"terminated\"" "$temp_index" > "${temp_index}.tmp" 2>/dev/null
         fi
 
-        if [[ -f "${temp_index}.tmp" ]]; then
+        # Only move if the tmp file exists and is not empty
+        if [[ -f "${temp_index}.tmp" && -s "${temp_index}.tmp" ]]; then
             mv "${temp_index}.tmp" "$temp_index"
+        else
+            rm -f "${temp_index}.tmp"
         fi
     done
 
-    # Update timestamp
-    jq ".lastUpdated = \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"" "$temp_index" > "$sessions_index"
+    # Update timestamp with error checking
+    local final_temp=$(mktemp)
+    if jq ".lastUpdated = \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"" "$temp_index" > "$final_temp" 2>/dev/null; then
+        # Verify the file is not empty before moving
+        if [[ -s "$final_temp" ]]; then
+            mv "$final_temp" "$sessions_index"
+        else
+            rm -f "$final_temp"
+            print_error "Failed to update sessions index: output was empty"
+        fi
+    else
+        rm -f "$final_temp"
+        print_error "Failed to update sessions index timestamp"
+    fi
 
     rm -f "$temp_index" "${temp_index}.tmp"
 
@@ -181,7 +213,9 @@ update_session_status() {
 
     # Update status using jq
     local temp_file=$(mktemp)
-    jq --arg sid "$session_id" --arg status "$new_status" '
+
+    # Use jq to update the status, with error checking
+    if ! jq --arg sid "$session_id" --arg status "$new_status" '
         .sessions |= map(
             if .sessionId == $sid
             then .status = $status
@@ -189,7 +223,16 @@ update_session_status() {
             end
         ) |
         .lastUpdated = now | strftime("%Y-%m-%dT%H:%M:%SZ")
-    ' "$sessions_index" > "$temp_file"
+    ' "$sessions_index" > "$temp_file" 2>/dev/null; then
+        rm -f "$temp_file"
+        return 1
+    fi
+
+    # Verify the temp file is not empty before moving
+    if [[ ! -s "$temp_file" ]]; then
+        rm -f "$temp_file"
+        return 1
+    fi
 
     mv "$temp_file" "$sessions_index"
 }
@@ -197,32 +240,45 @@ update_session_status() {
 # Start agents in a restored session
 start_session_agents() {
     local tmux_session="$1"
+    local session_dir="${SESSION_DIR:-${MAS_WORKSPACE_ROOT}/sessions/${SESSION_ID}}"
 
-    # Agent startup commands
-    local agent_commands=(
-        "meta:0:clauded --agent 00"
-        "design:0:clauded --agent 10"
-        "design:1:clauded --agent 11"
-        "design:2:clauded --agent 12"
-        "design:3:clauded --agent 13"
-        "development:0:clauded --agent 20"
-        "development:1:clauded --agent 21"
-        "development:2:clauded --agent 22"
-        "development:3:clauded --agent 23"
-        "business:0:clauded --agent 30"
-        "business:1:clauded --agent 31"
-        "business:2:clauded --agent 32"
-        "business:3:clauded --agent 33"
+    # Agent configurations: window:pane:agent_num
+    local agent_configs=(
+        "meta:0:00"
+        "design:0:10"
+        "design:1:11"
+        "design:2:12"
+        "design:3:13"
+        "development:0:20"
+        "development:1:21"
+        "development:2:22"
+        "development:3:23"
+        "business:0:30"
+        "business:1:31"
+        "business:2:32"
+        "business:3:33"
     )
 
-    for cmd in "${agent_commands[@]}"; do
-        IFS=':' read -r window pane command <<< "$cmd"
+    for config in "${agent_configs[@]}"; do
+        IFS=':' read -r window pane agent_num <<< "$config"
 
         # Get window index
         local window_idx=$(tmux list-windows -t "$tmux_session" -F "#{window_name}:#{window_index}" | grep "^${window}:" | cut -d: -f2)
 
         if [[ -n "$window_idx" ]]; then
-            tmux send-keys -t "${tmux_session}:${window_idx}.${pane}" "$command" Enter
+            local agent_dir="${session_dir}/unit/${agent_num}"
+
+            # Check if agent directory exists
+            if [[ -d "$agent_dir" ]]; then
+                # Navigate to agent directory
+                tmux send-keys -t "${tmux_session}:${window_idx}.${pane}" "cd '$agent_dir'" Enter
+                sleep 0.2
+
+                # Start claude with restore flag (-c)
+                tmux send-keys -t "${tmux_session}:${window_idx}.${pane}" "claude --model sonnet --dangerously-skip-permissions -c" Enter
+
+                print_info "Started agent $agent_num in window $window, pane $pane"
+            fi
         fi
     done
 }
