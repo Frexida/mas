@@ -21,6 +21,8 @@ export const AgentConfigurator: React.FC<AgentConfiguratorProps> = ({ onSubmitSu
     setMetaManager,
     setUnitManager,
     setWorker,
+    addWorker,
+    removeWorker,
     isValid,
     toRunsRequest
   } = useMasConfiguration();
@@ -126,6 +128,8 @@ export const AgentConfigurator: React.FC<AgentConfiguratorProps> = ({ onSubmitSu
                 onWorkerChange={(workerIndex, prompt) =>
                   setWorker(index, workerIndex, unit.workers[workerIndex].id, prompt)
                 }
+                onAddWorker={() => addWorker(index)}
+                onRemoveWorker={(workerIndex) => removeWorker(index, workerIndex)}
               />
             ))}
           </div>

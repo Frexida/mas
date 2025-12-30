@@ -242,43 +242,66 @@ start_session_agents() {
     local tmux_session="$1"
     local session_dir="${SESSION_DIR:-${MAS_WORKSPACE_ROOT}/sessions/${SESSION_ID}}"
 
-    # Agent configurations: window:pane:agent_num
-    local agent_configs=(
-        "meta:0:00"
-        "design:0:10"
-        "design:1:11"
-        "design:2:12"
-        "design:3:13"
-        "development:0:20"
-        "development:1:21"
-        "development:2:22"
-        "development:3:23"
-        "business:0:30"
-        "business:1:31"
-        "business:2:32"
-        "business:3:33"
-    )
+    # Find all agent directories dynamically
+    if [[ ! -d "${session_dir}/unit" ]]; then
+        print_error "Unit directory not found: ${session_dir}/unit"
+        return 1
+    fi
 
-    for config in "${agent_configs[@]}"; do
-        IFS=':' read -r window pane agent_num <<< "$config"
+    # Get list of actual agent directories
+    local agent_dirs=$(ls -d "${session_dir}/unit/"*/ 2>/dev/null | sort)
+
+    if [[ -z "$agent_dirs" ]]; then
+        print_error "No agent directories found in ${session_dir}/unit"
+        return 1
+    fi
+
+    # Process each agent directory
+    for agent_path in $agent_dirs; do
+        local agent_num=$(basename "$agent_path")
+
+        # Determine window and pane based on agent number
+        local window=""
+        local pane=0
+
+        if [[ "$agent_num" == "00" ]]; then
+            window="meta"
+            pane=0
+        elif [[ "$agent_num" =~ ^1[0-9]$ ]]; then
+            window="design"
+            pane=$((10#$agent_num % 10))
+        elif [[ "$agent_num" =~ ^2[0-9]$ ]]; then
+            window="development"
+            pane=$((10#$agent_num % 10))
+        elif [[ "$agent_num" =~ ^3[0-9]$ ]]; then
+            window="business"
+            pane=$((10#$agent_num % 10))
+        else
+            print_info "Skipping unknown agent number: $agent_num"
+            continue
+        fi
 
         # Get window index
         local window_idx=$(tmux list-windows -t "$tmux_session" -F "#{window_name}:#{window_index}" | grep "^${window}:" | cut -d: -f2)
 
         if [[ -n "$window_idx" ]]; then
-            local agent_dir="${session_dir}/unit/${agent_num}"
+            # Check if pane exists
+            local pane_exists=$(tmux list-panes -t "$tmux_session:${window_idx}" -F "#{pane_index}" | grep -c "^${pane}$")
 
-            # Check if agent directory exists
-            if [[ -d "$agent_dir" ]]; then
+            if [[ "$pane_exists" -gt 0 ]]; then
                 # Navigate to agent directory
-                tmux send-keys -t "${tmux_session}:${window_idx}.${pane}" "cd '$agent_dir'" Enter
+                tmux send-keys -t "${tmux_session}:${window_idx}.${pane}" "cd '$agent_path'" Enter
                 sleep 0.2
 
                 # Start claude with restore flag (-c)
                 tmux send-keys -t "${tmux_session}:${window_idx}.${pane}" "claude --model sonnet --dangerously-skip-permissions -c" Enter
 
                 print_info "Started agent $agent_num in window $window, pane $pane"
+            else
+                print_info "Pane $pane not found in window $window for agent $agent_num"
             fi
+        else
+            print_info "Window $window not found for agent $agent_num"
         fi
     done
 }
