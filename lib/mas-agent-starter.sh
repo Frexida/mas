@@ -108,8 +108,8 @@ start_agent_unified() {
     tmux send-keys -t "$session_name:$window.$pane" "echo ''" C-m
     sleep 0.2
 
-    # Build claude command with version-pinned install
-    local claude_cmd="npm install -g @anthropic-ai/claude-code@1.0.100 && sleep 3 && claude --model $model --dangerously-skip-permissions"
+    # Build claude command
+    local claude_cmd="claude --model $model --dangerously-skip-permissions"
 
     # Add -c flag for restore/continue mode
     if [[ "$is_restore" == "true" ]]; then
