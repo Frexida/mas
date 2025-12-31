@@ -237,15 +237,28 @@ copy_workflow_templates() {
     # Create workflows directory if not exists
     mkdir -p "$session_dir/workflows"
 
-    # Copy all workflow files
-    cp -r "$templates_dir/workflows/"* "$session_dir/workflows/" 2>/dev/null || {
-        print_warning "Failed to copy some workflow templates"
-    }
+    # Copy MAS common rules file only
+    if [ -f "$templates_dir/workflows/mas_common_rules.md" ]; then
+        cp "$templates_dir/workflows/mas_common_rules.md" "$session_dir/workflows/" 2>/dev/null || {
+            print_warning "Failed to copy MAS common rules"
+        }
+        print_success "Copied MAS common rules"
+    else
+        # If not found in templates, check in the main workflows directory
+        if [ -f "$templates_dir/../workflows/mas_common_rules.md" ]; then
+            cp "$templates_dir/../workflows/mas_common_rules.md" "$session_dir/workflows/" 2>/dev/null || {
+                print_warning "Failed to copy MAS common rules from main directory"
+            }
+            print_success "Copied MAS common rules from main directory"
+        else
+            print_warning "MAS common rules not found"
+        fi
+    fi
 
-    # Make scripts executable
-    find "$session_dir/workflows" -type f -name "*.sh" -exec chmod +x {} \;
+    # Make scripts executable if any exist
+    find "$session_dir/workflows" -type f -name "*.sh" -exec chmod +x {} \; 2>/dev/null
 
-    print_success "Workflow templates copied"
+    print_success "Workflow setup completed"
 }
 
 # Export functions
