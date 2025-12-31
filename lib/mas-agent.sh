@@ -181,7 +181,7 @@ start_agent() {
     fi
 
     # claude-code@1.0.100をインストールしてclaude起動（権限チェックをスキップ）
-    send_to_pane "$session_name" "$window" "$pane" "npm install -g @anthropic-ai/claude-code@1.0.100 && claude --dangerously-skip-permissions --model $model"
+    send_to_pane "$session_name" "$window" "$pane" "npm install -g @anthropic-ai/claude-code@1.0.100 && sleep 3 && claude --dangerously-skip-permissions --model $model"
 
     return 0
 }

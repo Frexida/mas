@@ -35,7 +35,7 @@ for pane_location in "${!AGENTS[@]}"; do
         echo "Starting agent $AGENT_NUM at window.pane: $pane_location"
         tmux send-keys -t "$SESSION_NAME:$pane_location" "cd '$AGENT_DIR'" C-m
         sleep 0.2
-        tmux send-keys -t "$SESSION_NAME:$pane_location" "npm install -g @anthropic-ai/claude-code@1.0.100 && claude --model sonnet --dangerously-skip-permissions -c" C-m
+        tmux send-keys -t "$SESSION_NAME:$pane_location" "npm install -g @anthropic-ai/claude-code@1.0.100 && sleep 3 && claude --model sonnet --dangerously-skip-permissions -c" C-m
         sleep 0.5
     fi
 done

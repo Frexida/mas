@@ -109,7 +109,7 @@ start_agent_unified() {
     sleep 0.2
 
     # Build claude command with version-pinned install
-    local claude_cmd="npm install -g @anthropic-ai/claude-code@1.0.100 && claude --model $model --dangerously-skip-permissions"
+    local claude_cmd="npm install -g @anthropic-ai/claude-code@1.0.100 && sleep 3 && claude --model $model --dangerously-skip-permissions"
 
     # Add -c flag for restore/continue mode
     if [[ "$is_restore" == "true" ]]; then

@@ -193,7 +193,7 @@ start_agent_in_pane() {
     sleep 0.2
 
     # claude-code@1.0.100をインストールしてclaudeコマンドを起動
-    tmux send-keys -t "$MAS_SESSION_NAME:$window.$pane" "npm install -g @anthropic-ai/claude-code@1.0.100 && claude --model $model --dangerously-skip-permissions" C-m
+    tmux send-keys -t "$MAS_SESSION_NAME:$window.$pane" "npm install -g @anthropic-ai/claude-code@1.0.100 && sleep 3 && claude --model $model --dangerously-skip-permissions" C-m
 }
 
 # Meta Manager (00) - Window 1
