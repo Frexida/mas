@@ -142,7 +142,7 @@ const promptTemplates = {
       name: "ワーカーへのタスク割当",
       template: `【作業指示】
 
-対象ワーカー: [11/12/13/21/22/23/31/32/33]
+対象ワーカー: {targetId}
 
 【タスク内容】
 [具体的なタスク]
@@ -163,7 +163,7 @@ const promptTemplates = {
       template: `【進捗報告】
 
 ユニット: [ユニット名]
-報告者: Unit [番号]
+報告者: Unit {targetId}
 
 【完了タスク】
 - [完了項目]
@@ -216,7 +216,7 @@ const promptTemplates = {
       name: "タスク受領確認",
       template: `【タスク受領】
 
-Unit [番号]がタスクを受領しました。
+Unit {targetId}がタスクを受領しました。
 
 【理解した内容】
 - [タスク内容の要約]
@@ -233,7 +233,7 @@ Unit [番号]がタスクを受領しました。
       name: "問題報告",
       template: `【問題報告】
 
-Unit [番号]から緊急報告
+Unit {targetId}から緊急報告
 
 【発生した問題】
 [問題の詳細]
@@ -257,7 +257,7 @@ Unit [番号]から緊急報告
       name: "作業完了報告",
       template: `【作業完了報告】
 
-Unit [番号]の作業が完了しました。
+Unit {targetId}の作業が完了しました。
 
 【完了したタスク】
 [タスク名]
@@ -309,7 +309,7 @@ Unit [番号]の作業が完了しました。
       template: `【協力要請】
 
 From: Unit [送信元]
-To: Unit [宛先]
+To: Unit {targetId}
 
 【協力を求める内容】
 [具体的な協力内容]
@@ -431,24 +431,38 @@ export const MessageSenderWithTemplates: React.FC<MessageSenderProps> = ({ tmuxS
   const targetOptions = [
     { value: 'all', label: 'All Agents' },
     { value: 'managers', label: 'All Managers (00, 10, 20, 30)' },
-    { value: 'agent-00', label: 'Meta Manager (00)' },
-    { value: 'agent-10', label: 'Design Manager (10)' },
-    { value: 'agent-11', label: 'UI Designer (11)' },
-    { value: 'agent-12', label: 'UX Designer (12)' },
-    { value: 'agent-13', label: 'Visual Designer (13)' },
-    { value: 'agent-20', label: 'Dev Manager (20)' },
-    { value: 'agent-21', label: 'Frontend Dev (21)' },
-    { value: 'agent-22', label: 'Backend Dev (22)' },
-    { value: 'agent-23', label: 'DevOps (23)' },
-    { value: 'agent-30', label: 'Business Manager (30)' },
-    { value: 'agent-31', label: 'Accounting (31)' },
-    { value: 'agent-32', label: 'Strategy (32)' },
-    { value: 'agent-33', label: 'Analysis (33)' },
+    { value: 'agent-00', label: '00' },
+    { value: 'agent-10', label: '10' },
+    { value: 'agent-11', label: '11' },
+    { value: 'agent-12', label: '12' },
+    { value: 'agent-13', label: '13' },
+    { value: 'agent-20', label: '20' },
+    { value: 'agent-21', label: '21' },
+    { value: 'agent-22', label: '22' },
+    { value: 'agent-23', label: '23' },
+    { value: 'agent-30', label: '30' },
+    { value: 'agent-31', label: '31' },
+    { value: 'agent-32', label: '32' },
+    { value: 'agent-33', label: '33' },
     { value: 'custom', label: 'Custom Target' },
   ];
 
+  // targetからIDを抽出する関数
+  const extractTargetId = (targetValue: string): string => {
+    // agent-XX形式の場合、XXを抽出
+    const match = targetValue.match(/agent-(\d+)/);
+    if (match) {
+      return match[1];
+    }
+    // all, managers, custom などの場合はそのまま返す
+    return targetValue;
+  };
+
   const applyTemplate = (template: string) => {
-    setMessage(template);
+    // {targetId}プレースホルダーを現在選択中のtargetのIDに置換
+    const targetId = extractTargetId(target);
+    const processedTemplate = template.replace(/\{targetId\}/g, targetId);
+    setMessage(processedTemplate);
     setShowTemplates(false);
     setSelectedCategory('');
   };
