@@ -446,6 +446,13 @@ cmd_send() {
 
     # メッセージ送信
     route_message "$target" "$message" "$execute"
+
+    # Claude Code互換性のため、3秒後にEOFを自動送信
+    # バックグラウンドで実行して即座に制御を返す
+    {
+        sleep 3
+        route_message "$target" "EOF" "true"
+    } &
 }
 
 # statusコマンド: 状態表示
