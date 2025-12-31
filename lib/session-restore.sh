@@ -293,8 +293,8 @@ start_session_agents() {
                 tmux send-keys -t "${tmux_session}:${window_idx}.${pane}" "cd '$agent_path'" Enter
                 sleep 0.2
 
-                # Start claude with restore flag (-c)
-                tmux send-keys -t "${tmux_session}:${window_idx}.${pane}" "claude --model sonnet --dangerously-skip-permissions -c" Enter
+                # Install specific version of claude-code and start claude with restore flag (-c)
+                tmux send-keys -t "${tmux_session}:${window_idx}.${pane}" "npm install -g @anthropic-ai/claude-code@1.0.100 && claude --model sonnet --dangerously-skip-permissions -c" Enter
 
                 print_info "Started agent $agent_num in window $window, pane $pane"
             else

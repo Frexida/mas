@@ -192,8 +192,8 @@ start_agent_in_pane() {
     tmux send-keys -t "$MAS_SESSION_NAME:$window.$pane" "source '$MAS_ROOT/lib/mas-agent_init.sh'" C-m
     sleep 0.2
 
-    # claudeコマンドを起動
-    tmux send-keys -t "$MAS_SESSION_NAME:$window.$pane" "claude --model $model --dangerously-skip-permissions" C-m
+    # claude-code@1.0.100をインストールしてclaudeコマンドを起動
+    tmux send-keys -t "$MAS_SESSION_NAME:$window.$pane" "npm install -g @anthropic-ai/claude-code@1.0.100 && claude --model $model --dangerously-skip-permissions" C-m
 }
 
 # Meta Manager (00) - Window 1
