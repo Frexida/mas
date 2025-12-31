@@ -232,36 +232,20 @@ is_communication_allowed() {
 # エージェント名を取得
 get_agent_name() {
     local id="$1"
-    case "$id" in
-        00) echo "Meta Manager" ;;
-        10) echo "Design Manager" ;;
-        11) echo "UI Designer" ;;
-        12) echo "UX Designer" ;;
-        13) echo "Visual Designer" ;;
-        20) echo "Dev Manager" ;;
-        21) echo "Frontend Dev" ;;
-        22) echo "Backend Dev" ;;
-        23) echo "DevOps" ;;
-        30) echo "Business Manager" ;;
-        31) echo "Accounting" ;;
-        32) echo "Strategy" ;;
-        33) echo "Analysis" ;;
-        *) echo "Unknown Agent" ;;
-    esac
+    # 数字のみを返す
+    echo "$id"
 }
 
 # 通信違反時のエラーメッセージ
 print_communication_error() {
     local from="$1"
     local to="$2"
-    local from_name=$(get_agent_name "$from")
-    local to_name=$(get_agent_name "$to")
 
     echo ""
     echo "🚫 通信ルール違反検出！"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "送信元: $from ($from_name)"
-    echo "送信先: $to ($to_name)"
+    echo "送信元: Agent $from"
+    echo "送信先: Agent $to"
     echo ""
     echo "❌ この通信は禁止されています"
     echo ""
@@ -293,7 +277,7 @@ print_communication_error() {
     local allowed_targets=""
     for target in 00 10 11 12 13 20 21 22 23 30 31 32 33; do
         if is_communication_allowed "$from" "$target"; then
-            allowed_targets="$allowed_targets $target($(get_agent_name $target))"
+            allowed_targets="$allowed_targets $target"
         fi
     done
 

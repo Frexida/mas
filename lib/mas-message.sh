@@ -75,16 +75,16 @@ expand_target() {
             echo "${target#agent-}"
             ;;
         # ユニット名
-        meta)
+        meta|0)
             echo "00"
             ;;
-        design)
+        design|1)
             echo "10 11 12 13"
             ;;
-        development)
+        development|2)
             echo "20 21 22 23"
             ;;
-        business)
+        business|3)
             echo "30 31 32 33"
             ;;
         # グループ

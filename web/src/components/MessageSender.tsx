@@ -21,13 +21,13 @@ export const MessageSender: React.FC<MessageSenderProps> = ({ tmuxSession }) => 
   const targetOptions = [
     { value: 'all', label: 'All Agents' },
     { value: 'window1', label: 'Window 1' },
-    { value: 'agent-00', label: 'Meta Manager (00)' },
-    { value: 'agent-10', label: 'Unit 1 Manager (10)' },
-    { value: 'agent-11', label: 'Unit 1 Worker 1 (11)' },
-    { value: 'agent-12', label: 'Unit 1 Worker 2 (12)' },
-    { value: 'agent-13', label: 'Unit 1 Worker 3 (13)' },
-    { value: 'agent-20', label: 'Unit 2 Manager (20)' },
-    { value: 'agent-21', label: 'Unit 2 Worker 1 (21)' },
+    { value: 'agent-00', label: 'Agent 00' },
+    { value: 'agent-10', label: 'Agent 10' },
+    { value: 'agent-11', label: 'Agent 11' },
+    { value: 'agent-12', label: 'Agent 12' },
+    { value: 'agent-13', label: 'Agent 13' },
+    { value: 'agent-20', label: 'Agent 20' },
+    { value: 'agent-21', label: 'Agent 21' },
     { value: 'custom', label: 'Custom Target' },
   ];
 

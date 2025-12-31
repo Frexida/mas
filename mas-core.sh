@@ -85,7 +85,7 @@ sendオプション:
     # WebUI (http://localhost:5173) からセッションを作成・管理
 
     # デバッグ用（通常はWebUIから操作）
-    mas send 00 "Hello"           # Meta Managerにメッセージ送信
+    mas send 00 "Hello"           # Agent 00にメッセージ送信
     mas status --detail           # セッション状態を確認
 EOF
 }
@@ -367,8 +367,7 @@ cmd_send() {
             fi
 
             # 許可された通信の場合、送信元情報をメッセージに追加
-            local from_name=$(get_agent_name "$from")
-            message="[From: $from ($from_name)] $message"
+            message="[From: Agent $from] $message"
         fi
     fi
 
@@ -378,8 +377,8 @@ cmd_send() {
         print_error "  旧形式: mas send <target> <message> [options]"
         print_error ""
         print_error "例:"
-        print_error "  mas send 11 10 \"UIデザイン完了しました\"  # 11→10への送信"
-        print_error "  mas send 10 00 \"デザインユニットから報告\" # 10→00への送信"
+        print_error "  mas send 11 10 \"タスク完了しました\"  # 11→10への送信"
+        print_error "  mas send 10 00 \"Unit 1から報告\" # 10→00への送信"
         return 1
     fi
 
