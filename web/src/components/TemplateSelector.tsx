@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, FileText, Plus, Check } from 'lucide-react';
+import { getApiBaseUrl } from '../services/apiConfig';
 
 interface Template {
   id: string;
@@ -47,7 +48,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   const loadTemplates = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8765'}/templates`);
+      const response = await fetch(`${getApiBaseUrl()}/templates`);
       if (response.ok) {
         const data = await response.json();
         setTemplates(data.templates || []);
@@ -77,7 +78,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     try {
       // Load the full template content
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:8765'}/templates/agent/${template.agentId}/prompt?lang=ja`
+        `${getApiBaseUrl()}/templates/agent/${template.agentId}/prompt?lang=ja`
       );
 
       if (response.ok) {
@@ -113,69 +114,69 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     <div className={`template-selector ${className}`}>
       {/* Template Selection Dropdown */}
       <div className="relative">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-mas-text-secondary mb-2">
           テンプレート選択
         </label>
 
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           disabled={disabled || loading}
-          className={`w-full px-4 py-2 text-left bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`w-full px-4 py-2 text-left bg-mas-bg-subtle border border-mas-border rounded-md hover:bg-mas-bg-panel focus:outline-none focus:ring-2 focus:ring-mas-blue text-mas-text ${
             disabled ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <FileText className="w-4 h-4 text-gray-500" />
+              <FileText className="w-4 h-4 text-mas-text-muted" />
               <span>{getSelectionText()}</span>
             </div>
-            <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 text-mas-text-muted transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </div>
         </button>
 
         {/* Dropdown Menu */}
         {isDropdownOpen && (
-          <div className="w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-80 overflow-y-auto">
+          <div className="absolute z-50 w-full mt-1 bg-mas-bg-panel border border-mas-border rounded-md shadow-lg max-h-80 overflow-y-auto">
             <div className="py-1">
               {/* Custom Option */}
               <button
                 onClick={() => handleTemplateSelect('custom')}
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center justify-between"
+                className="w-full px-4 py-2 text-left text-mas-text hover:bg-mas-bg-subtle flex items-center justify-between"
               >
                 <div className="flex items-center space-x-2">
-                  <Plus className="w-4 h-4 text-gray-500" />
+                  <Plus className="w-4 h-4 text-mas-text-muted" />
                   <span>カスタム（直接入力）</span>
                 </div>
-                {selectedTemplate === 'custom' && <Check className="w-4 h-4 text-blue-600" />}
+                {selectedTemplate === 'custom' && <Check className="w-4 h-4 text-mas-blue" />}
               </button>
 
               {/* Separator */}
               {templates.length > 0 && (
-                <div className="border-t border-gray-200 my-1" />
+                <div className="border-t border-mas-border my-1" />
               )}
 
               {/* Recommended Template */}
               {recommendedTemplate && (
                 <>
-                  <div className="px-4 py-1 text-xs font-semibold text-gray-500 uppercase">
+                  <div className="px-4 py-1 text-xs font-semibold text-mas-text-muted uppercase">
                     推奨テンプレート
                   </div>
                   <button
                     onClick={() => handleTemplateSelect(recommendedTemplate.id)}
-                    className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center justify-between"
+                    className="w-full px-4 py-2 text-left text-mas-text hover:bg-mas-bg-subtle flex items-center justify-between"
                   >
                     <div>
                       <div className="font-medium">{recommendedTemplate.nameJa}</div>
-                      <div className="text-sm text-gray-500">{recommendedTemplate.descriptionJa}</div>
+                      <div className="text-sm text-mas-text-muted">{recommendedTemplate.descriptionJa}</div>
                     </div>
-                    {selectedTemplate === recommendedTemplate.id && <Check className="w-4 h-4 text-blue-600" />}
+                    {selectedTemplate === recommendedTemplate.id && <Check className="w-4 h-4 text-mas-blue" />}
                   </button>
-                  <div className="border-t border-gray-200 my-1" />
+                  <div className="border-t border-mas-border my-1" />
                 </>
               )}
 
               {/* All Templates Grouped by Unit */}
-              <div className="px-4 py-1 text-xs font-semibold text-gray-500 uppercase">
+              <div className="px-4 py-1 text-xs font-semibold text-mas-text-muted uppercase">
                 すべてのテンプレート
               </div>
               {['meta', 'design', 'development', 'business'].map(unit => {
@@ -184,7 +185,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
 
                 return (
                   <div key={unit}>
-                    <div className="px-4 py-1 text-xs text-gray-400">
+                    <div className="px-4 py-1 text-xs text-mas-text-muted">
                       {unit === 'meta' && 'メタ管理'}
                       {unit === 'design' && 'デザインユニット'}
                       {unit === 'development' && '開発ユニット'}
@@ -194,15 +195,15 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                       <button
                         key={template.id}
                         onClick={() => handleTemplateSelect(template.id)}
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center justify-between"
+                        className="w-full px-4 py-2 text-left text-mas-text hover:bg-mas-bg-subtle flex items-center justify-between"
                       >
                         <div className="ml-2">
                           <div className="text-sm">
-                            <span className="font-mono text-xs text-gray-500 mr-2">{template.agentId}</span>
+                            <span className="font-mono text-xs text-mas-text-muted mr-2">{template.agentId}</span>
                             {template.nameJa}
                           </div>
                         </div>
-                        {selectedTemplate === template.id && <Check className="w-4 h-4 text-blue-600" />}
+                        {selectedTemplate === template.id && <Check className="w-4 h-4 text-mas-blue" />}
                       </button>
                     ))}
                   </div>
@@ -218,15 +219,15 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
         <div className="mt-3">
           <button
             onClick={togglePreview}
-            className="text-sm text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+            className="text-sm text-mas-blue hover:text-mas-blue-soft flex items-center space-x-1"
           >
             <FileText className="w-4 h-4" />
             <span>{showPreview ? 'プレビューを隠す' : 'テンプレート内容を確認'}</span>
           </button>
 
           {showPreview && (
-            <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
-              <pre className="text-xs whitespace-pre-wrap font-mono text-gray-700 max-h-64 overflow-y-auto">
+            <div className="mt-2 p-3 bg-mas-bg-subtle border border-mas-border rounded-md">
+              <pre className="text-xs whitespace-pre-wrap font-mono text-mas-text-secondary max-h-64 overflow-y-auto">
                 {previewContent}
               </pre>
             </div>
@@ -236,7 +237,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
 
       {/* Info Message */}
       {selectedTemplate !== 'custom' && (
-        <p className="mt-2 text-sm text-gray-600">
+        <p className="mt-2 text-sm text-mas-text-muted">
           テンプレートが適用されました。必要に応じて下のテキストエリアで編集できます。
         </p>
       )}

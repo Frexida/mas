@@ -4,8 +4,6 @@ import {
   Search,
   RefreshCw,
   Plus,
-  Clock,
-  FolderOpen,
   Terminal,
   CheckCircle,
   PauseCircle,
@@ -91,13 +89,13 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
   const getStatusIcon = (status: SessionStatus) => {
     switch (status) {
       case 'active':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
+        return <CheckCircle className="w-4 h-4 text-mas-status-ok" />;
       case 'inactive':
-        return <PauseCircle className="w-4 h-4 text-yellow-600" />;
+        return <PauseCircle className="w-4 h-4 text-mas-status-off" />;
       case 'terminated':
-        return <XCircle className="w-4 h-4 text-red-600" />;
+        return <XCircle className="w-4 h-4 text-mas-status-error" />;
       case 'restoring':
-        return <Loader className="w-4 h-4 text-blue-600 animate-spin" />;
+        return <Loader className="w-4 h-4 text-mas-blue animate-spin" />;
       default:
         return null;
     }
@@ -106,13 +104,13 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
   const getStatusColor = (status: SessionStatus) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-800 border-green-300';
+        return 'bg-mas-bg-subtle text-mas-status-ok border-mas-border';
       case 'inactive':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+        return 'bg-mas-bg-subtle text-mas-status-off border-mas-border';
       case 'terminated':
-        return 'bg-red-100 text-red-800 border-red-300';
+        return 'bg-mas-bg-subtle text-mas-status-error border-mas-border';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-mas-bg-subtle text-mas-text-muted border-mas-border';
     }
   };
 
@@ -143,25 +141,25 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
   return (
     <div className="w-full h-full layout-full-width p-6">
       <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Select Tmux Session</h1>
+        <h1 className="text-2xl font-bold text-mas-text">Select session</h1>
         <button
           onClick={onCreateNew}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-mas-blue text-mas-bg-root font-medium rounded-md hover:bg-mas-blue-soft transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Create New Session
+          Create new session
         </button>
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
-          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+        <div className="mb-4 p-4 bg-mas-bg-panel border border-mas-border rounded-md flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 text-mas-status-error mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm text-red-800">{error}</p>
+            <p className="text-sm text-mas-status-error">{error}</p>
           </div>
           <button
             onClick={clearError}
-            className="text-red-600 hover:text-red-800"
+            className="text-mas-text-muted hover:text-mas-text"
           >
             <XCircle className="w-4 h-4" />
           </button>
@@ -170,21 +168,21 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
 
       <div className="mb-4 flex gap-3">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-mas-text-muted" />
           <input
             type="text"
             placeholder="Search sessions by ID, name, or directory..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-10 pr-4 py-2 bg-mas-bg-panel border border-mas-border rounded-md text-mas-text placeholder-mas-text-muted focus:outline-none focus:ring-2 focus:ring-mas-blue focus:border-mas-blue"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as SessionStatus | 'all')}
-          className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="px-4 py-2 bg-mas-bg-panel border border-mas-border rounded-md text-mas-text focus:outline-none focus:ring-2 focus:ring-mas-blue focus:border-mas-blue"
         >
-          <option value="all">All Status</option>
+          <option value="all">All status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
           <option value="terminated">Terminated</option>
@@ -192,22 +190,22 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
         <button
           onClick={refreshSessions}
           disabled={loading}
-          className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-2 border border-mas-border rounded-md hover:bg-mas-bg-subtle disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          <RefreshCw className={`w-5 h-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-5 h-5 text-mas-text-secondary ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
       {loading && sessions.length === 0 ? (
         <div className="flex justify-center py-8">
-          <div className="flex items-center gap-2 text-gray-600">
+          <div className="flex items-center gap-2 text-mas-text-secondary">
             <RefreshCw className="w-5 h-5 animate-spin" />
             <span>Loading sessions...</span>
           </div>
         </div>
       ) : filteredSessions.length === 0 ? (
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <p className="text-sm text-blue-800">
+        <div className="bg-mas-bg-panel border border-mas-border rounded-md p-4">
+          <p className="text-sm text-mas-text-secondary">
             {searchTerm || statusFilter !== 'all'
               ? 'No sessions found matching your filters.'
               : 'No active sessions. Create a new session to get started.'}
@@ -224,68 +222,67 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
                   handleSessionConnect(session);
                 }
               }}
-              className={`border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all ${
-                session.status === 'terminated' ? 'cursor-default' : 'hover:border-blue-300 cursor-pointer'
+              className={`bg-mas-bg-panel border border-mas-border rounded-lg p-4 transition-all ${
+                session.status === 'terminated' ? 'cursor-default' : 'hover:border-mas-blue-soft hover:bg-mas-bg-subtle cursor-pointer'
               }`}
             >
-              <div className="flex justify-between items-start mb-3">
+              {/* Layer 1: Essential info */}
+              <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-2">
                   {getStatusIcon(session.status)}
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(session.status)}`}>
-                    {session.status}
-                  </span>
+                  <span className="font-semibold text-mas-text">{session.tmuxSession}</span>
                 </div>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-mas-text-muted">
                   {getRelativeTime(session.startedAt)}
                 </span>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Terminal className="w-4 h-4 text-gray-500" />
-                  <span className="font-semibold text-gray-900">{session.tmuxSession}</span>
-                </div>
+              <div className="flex items-center gap-2 text-sm text-mas-text-secondary">
+                <span className={`px-2 py-0.5 text-xs rounded ${getStatusColor(session.status)}`}>
+                  {session.status}
+                </span>
+                {session.agentCount !== undefined && (
+                  <span className="text-xs text-mas-text-muted">
+                    {session.agentCount} agents
+                  </span>
+                )}
+              </div>
 
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium">ID:</span>
-                  <span className="font-mono ml-1">{session.sessionId}</span>
-                </div>
-
-                <div className="flex items-start gap-2 text-sm text-gray-600">
-                  <FolderOpen className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span className="truncate">{session.workingDir}</span>
-                </div>
-
-                <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-100">
-                  <div className="flex items-center gap-1 text-xs text-gray-500">
-                    <Clock className="w-3 h-3" />
-                    <span>Created: {formatDate(session.startedAt)}</span>
+              {/* Layer 2: Technical details (collapsible) */}
+              <details className="mt-3 pt-3 border-t border-mas-border" onClick={(e) => e.stopPropagation()}>
+                <summary className="text-xs text-mas-text-muted cursor-pointer hover:text-mas-text-secondary">
+                  View details
+                </summary>
+                <div className="mt-2 space-y-1 text-xs font-mono text-mas-text-muted">
+                  <div>
+                    <span className="text-mas-text-secondary">ID:</span> {session.sessionId}
                   </div>
-                  {session.agentCount !== undefined && (
-                    <span className="text-xs text-gray-500">
-                      {session.agentCount} agents
-                    </span>
+                  <div className="truncate">
+                    <span className="text-mas-text-secondary">Path:</span> {session.workingDir}
+                  </div>
+                  <div>
+                    <span className="text-mas-text-secondary">Created:</span> {formatDate(session.startedAt)}
+                  </div>
+                  {session.lastActivity && (
+                    <div>
+                      <span className="text-mas-text-secondary">Last activity:</span> {getRelativeTime(session.lastActivity)}
+                    </div>
                   )}
                 </div>
-
-                {session.lastActivity && (
-                  <div className="text-xs text-gray-500">
-                    Last activity: {getRelativeTime(session.lastActivity)}
-                  </div>
-                )}
+              </details>
 
                 {/* View Docs button for any session with documents */}
                 {(session.status === 'active' || session.status === 'inactive' || session.status === 'terminated') && (
-                  <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex gap-2 mt-3 pt-3 border-t border-mas-border">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/docs?sessionId=${session.sessionId}`);
                       }}
-                      className="flex-1 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 px-3 py-1.5 text-sm bg-mas-bg-subtle text-mas-text-secondary rounded-md hover:bg-mas-blue-muted hover:text-mas-text transition-colors flex items-center justify-center gap-2"
                     >
                       <FileText className="w-4 h-4" />
-                      View Docs
+                      View docs
                     </button>
                     {session.status === 'active' && (
                       <button
@@ -293,7 +290,7 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
                           e.stopPropagation();
                           handleSessionConnect(session);
                         }}
-                        className="flex-1 px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition-colors flex items-center justify-center gap-2"
+                        className="flex-1 px-3 py-1.5 text-sm bg-mas-blue-muted text-mas-blue rounded-md hover:bg-mas-blue hover:text-mas-bg-root transition-colors flex items-center justify-center gap-2"
                       >
                         <Terminal className="w-4 h-4" />
                         Connect
@@ -304,9 +301,9 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
 
                 {/* Restore buttons for terminated sessions */}
                 {session.status === 'terminated' && session.restorable !== false && (
-                  <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex gap-2 mt-3 pt-3 border-t border-mas-border">
                     {restoringSession === session.sessionId ? (
-                      <div className="flex items-center gap-2 text-sm text-blue-600">
+                      <div className="flex items-center gap-2 text-sm text-mas-blue">
                         <Loader className="w-4 h-4 animate-spin" />
                         <span>Restoring session...</span>
                       </div>
@@ -318,7 +315,7 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
                             handleSessionRestore(session, true);
                           }}
                           disabled={loading || restoringSession !== null}
-                          className="flex-1 px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 rounded-md transition-colors disabled:cursor-not-allowed"
+                          className="flex-1 px-3 py-2 text-sm font-medium text-mas-bg-root bg-mas-blue hover:bg-mas-blue-soft disabled:bg-mas-bg-subtle disabled:text-mas-text-muted rounded-md transition-colors disabled:cursor-not-allowed"
                         >
                           <div className="flex items-center justify-center gap-1">
                             <RefreshCw className="w-4 h-4" />
@@ -331,16 +328,15 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
                             handleSessionRestore(session, false);
                           }}
                           disabled={loading || restoringSession !== null}
-                          className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400 rounded-md transition-colors disabled:cursor-not-allowed"
+                          className="px-3 py-2 text-sm font-medium text-mas-text-secondary bg-mas-bg-subtle hover:bg-mas-bg-panel disabled:text-mas-text-muted rounded-md transition-colors disabled:cursor-not-allowed border border-mas-border"
                           title="Restore without agents"
                         >
-                          No Agents
+                          No agents
                         </button>
                       </>
                     )}
                   </div>
                 )}
-              </div>
             </div>
           ))}
         </div>
@@ -348,7 +344,7 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
 
       {loading && sessions.length > 0 && (
         <div className="flex justify-center mt-4">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="flex items-center gap-2 text-sm text-mas-text-secondary">
             <RefreshCw className="w-4 h-4 animate-spin" />
             <span>Refreshing sessions...</span>
           </div>

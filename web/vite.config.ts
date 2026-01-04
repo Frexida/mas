@@ -26,6 +26,7 @@ export default defineConfig(({ mode }) => {
       port: parseInt(env.VITE_PORT || '5173'),
       strictPort: true,
       cors: true,
+      allowedHosts: ['.frexida.com', '.trycloudflare.com'],
       // HMR configuration can be customized via environment variables
       hmr: env.VITE_HMR_HOST ? {
         host: env.VITE_HMR_HOST,

@@ -2,6 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   Global Reset for Dark UI
+   ======================================== */
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  background-color: #0f1117; /* mas-bg-root */
+  color: #e6e8ee; /* mas-text */
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Remove focus outlines globally, add back only where needed */
+*:focus {
+  outline: none;
+}
+
+/* Blue focus ring for interactive elements */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid #5b9bd5; /* mas-blue */
+  outline-offset: 2px;
+}
+
+/* ========================================
+   MAS Design System - Color Tokens
+
+   Usage ratio:
+   - Grayscale: 85-90%
+   - Blue: 8-12%
+   - Purple: 1-3%
+
+   Rule: 白黒で読む、青で触る、紫は覚悟
+   ======================================== */
+
+@theme {
+  /* Background (base layer) */
+  --color-mas-bg-root: #0f1117;
+  --color-mas-bg-panel: #161a23;
+  --color-mas-bg-subtle: #1c2130;
+
+  /* Borders */
+  --color-mas-border: #2a2f3a;
+  --color-mas-border-strong: #3a4152;
+
+  /* Text */
+  --color-mas-text: #e6e8ee;
+  --color-mas-text-secondary: #9aa1b2;
+  --color-mas-text-muted: #6f7687;
+
+  /* Blue - Primary accent (safe, operable) */
+  --color-mas-blue: #5b9bd5;
+  --color-mas-blue-soft: #4a7ba8;
+  --color-mas-blue-muted: #2d4a66;
+
+  /* Purple - Secondary accent (boundary, commitment) */
+  --color-mas-purple: #7b6cff;
+  --color-mas-purple-soft: #4b3f8f;
+  --color-mas-purple-dim: #2a254a;
+
+  /* Status (minimal) */
+  --color-mas-status-ok: #6fcf97;
+  --color-mas-status-warning: #f2c94c;
+  --color-mas-status-error: #eb5757;
+  --color-mas-status-off: #6f7687;
+}
+
 /* Critical layout utilities to ensure they're never purged */
 @layer utilities {
   .layout-full-width {

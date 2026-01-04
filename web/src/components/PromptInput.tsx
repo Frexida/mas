@@ -52,8 +52,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   return (
     <div className="mb-4">
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
-        {label} <span className="text-gray-400">(ID: {id})</span>
+      <label htmlFor={id} className="block text-sm font-medium text-mas-text-secondary mb-1">
+        {label} <span className="text-mas-text-muted">(ID: {id})</span>
       </label>
 
       {showTemplateSelector && (
@@ -72,7 +72,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         onChange={(e) => handleTextChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border resize-y min-h-[120px]"
+        className="mt-1 block w-full rounded-md bg-mas-bg-panel border-mas-border shadow-sm focus:border-mas-blue focus:ring-mas-blue sm:text-sm px-3 py-2 border resize-y min-h-[120px] text-mas-text placeholder-mas-text-muted"
       />
 
       <div className="mt-1 flex justify-between items-center">
@@ -81,13 +81,13 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             <button
               type="button"
               onClick={handleReset}
-              className="text-xs text-blue-600 hover:text-blue-800"
+              className="text-xs text-mas-blue hover:text-mas-blue-soft"
             >
-              テンプレートに戻す
+              Reset to template
             </button>
           )}
         </div>
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-mas-text-muted">
           {value.length} / {maxLength}
         </div>
       </div>

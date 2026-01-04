@@ -6,6 +6,7 @@ import { SessionOutputDisplay } from './components/SessionOutputDisplay';
 import { SessionSelector } from './components/SessionSelector';
 import ApiSettings from './components/ApiSettings';
 import DocumentViewer from './pages/DocumentViewer';
+import ChatViewer from './pages/ChatViewer';
 import type { RunsResponse, ErrorResponse } from './types/masApi';
 import { testApiConnection } from './services/masApi';
 
@@ -14,7 +15,7 @@ function SessionSelectorPage({ onSessionSelected }: { onSessionSelected: (sessio
   const navigate = useNavigate();
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full overflow-y-auto">
       <SessionSelector
         onSessionSelected={(session) => {
           onSessionSelected(session);
@@ -79,6 +80,7 @@ function SessionPage({ response, onReset }: { response: RunsResponse | ErrorResp
 
 function App() {
   const [response, setResponse] = useState<RunsResponse | ErrorResponse | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const [apiStatus, setApiStatus] = useState<{
     checking: boolean;
     connected: boolean;
@@ -122,19 +124,19 @@ function App() {
 
   return (
     <Router>
-      <div className="h-screen w-full layout-full-width flex flex-col bg-gray-50">
-        <Header />
+      <div className="h-screen w-full layout-full-width flex flex-col bg-mas-bg-root">
+        <Header onSettingsClick={() => setShowSettings(true)} />
 
         {/* API Status Banner */}
         {!apiStatus.checking && !apiStatus.connected && (
-          <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3 flex-shrink-0">
+          <div className="bg-mas-bg-panel border-b border-mas-border px-4 py-3 flex-shrink-0">
             <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-              <p className="text-sm text-yellow-800">
+              <p className="text-sm text-mas-status-warning">
                 {apiStatus.message}
               </p>
               <button
                 onClick={checkApiConnection}
-                className="text-sm text-yellow-700 hover:text-yellow-900 underline"
+                className="text-sm text-mas-blue hover:text-mas-blue-soft underline"
               >
                 Retry Connection
               </button>
@@ -168,11 +170,17 @@ function App() {
               element={<DocumentViewer />}
             />
 
+            {/* チャットビューワーページ */}
+            <Route
+              path="/chat"
+              element={<ChatViewer />}
+            />
+
             {/* デフォルトルート */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
-        <ApiSettings />
+        <ApiSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
       </div>
     </Router>
   );

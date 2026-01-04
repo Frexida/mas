@@ -81,14 +81,14 @@ export const AgentConfigurator: React.FC<AgentConfiguratorProps> = ({ onSubmitSu
       {!sessionData ? (
         <form onSubmit={handleSubmit} className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Multi-Agent System Configuration</h1>
+            <h1 className="text-2xl font-bold text-mas-text">Multi-agent system configuration</h1>
             {onBack && (
               <button
                 type="button"
                 onClick={onBack}
-                className="px-4 py-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-mas-text-secondary hover:text-mas-text border border-mas-border rounded-md hover:bg-mas-bg-subtle transition-colors"
               >
-                ← Back to Sessions
+                Back to sessions
               </button>
             )}
           </div>
@@ -135,8 +135,8 @@ export const AgentConfigurator: React.FC<AgentConfiguratorProps> = ({ onSubmitSu
           </div>
 
           {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-800 whitespace-pre-wrap">{error}</p>
+            <div className="mt-4 p-3 bg-mas-bg-panel border border-mas-border rounded-md">
+              <p className="text-sm text-mas-status-error whitespace-pre-wrap">{error}</p>
             </div>
           )}
 
@@ -144,15 +144,15 @@ export const AgentConfigurator: React.FC<AgentConfiguratorProps> = ({ onSubmitSu
             <button
               type="submit"
               disabled={isSubmitting || !isValid()}
-              className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="w-full sm:w-auto px-6 py-3 bg-mas-blue text-mas-bg-root font-semibold rounded-md hover:bg-mas-blue-soft disabled:bg-mas-bg-subtle disabled:text-mas-text-muted disabled:cursor-not-allowed transition-colors"
             >
-              {isSubmitting ? 'Creating Session...' : 'Create Session'}
+              {isSubmitting ? 'Creating session...' : 'Create session'}
             </button>
           </div>
         </form>
       ) : (
         <div className="p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Session Active</h1>
+          <h1 className="text-2xl font-bold text-mas-text mb-6">Session active</h1>
           <SessionDisplay session={sessionData} />
           <MessageSender
             tmuxSession={sessionData.tmuxSession}
@@ -162,9 +162,9 @@ export const AgentConfigurator: React.FC<AgentConfiguratorProps> = ({ onSubmitSu
               setSessionData(null);
               setError(null);
             }}
-            className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+            className="mt-4 px-4 py-2 bg-mas-bg-subtle text-mas-text-secondary border border-mas-border rounded-md hover:bg-mas-bg-panel hover:text-mas-text transition-colors"
           >
-            Configure New Session
+            Configure new session
           </button>
         </div>
       )}

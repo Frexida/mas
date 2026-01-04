@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Settings } from 'lucide-react';
 import { getApiBaseUrl } from '../services/apiConfig';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onSettingsClick?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onSettingsClick }) => {
   const [apiUrl, setApiUrl] = useState<string>('');
 
   useEffect(() => {
@@ -31,17 +36,24 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-indigo-600 text-white flex-shrink-0">
+    <header className="bg-mas-bg-panel border-b border-mas-border flex-shrink-0">
       <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">MAS Control Panel</h1>
-            <p className="text-indigo-200 text-sm mt-1">
-              Multi-Agent System Configuration Interface
-            </p>
+          <div className="flex items-center gap-3">
+            <img src="/mas-icon.png" alt="MAS" className="w-10 h-10" />
+            <h1 className="text-2xl font-bold text-mas-purple">MAS</h1>
           </div>
-          <div className="text-sm text-indigo-200">
-            Connected to: <span className="font-mono">{getHostname(apiUrl)}</span>
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-mas-text-muted">
+              <span className="font-mono text-mas-text-secondary">{getHostname(apiUrl)}</span>
+            </div>
+            <button
+              onClick={onSettingsClick}
+              className="p-1.5 text-mas-text-muted hover:text-mas-text-secondary transition-colors duration-200"
+              title="API Settings"
+            >
+              <Settings size={16} />
+            </button>
           </div>
         </div>
       </div>

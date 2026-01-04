@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Menu, X, ChevronRight } from 'lucide-react';
 import TreeView from '../components/docs/TreeView';
 import DocumentContent from '../components/docs/DocumentContent';
 
@@ -28,6 +29,7 @@ const DocumentViewer: React.FC = () => {
   const [documentContent, setDocumentContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // ユニット構造を取得
   useEffect(() => {
@@ -112,39 +114,43 @@ const DocumentViewer: React.FC = () => {
     navigate(-1);
   };
 
+  const handleAgentSelect = (agentId: string | null) => {
+    setSelectedAgent(agentId);
+    // モバイルでエージェント選択時にサイドバーを閉じる
+    setSidebarOpen(false);
+  };
+
   // sessionIdがない場合の警告表示
   if (!sessionId) {
     return (
-      <div className="h-screen flex flex-col">
+      <div className="h-full flex flex-col bg-mas-bg-root">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="bg-mas-bg-panel border-b border-mas-border px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-gray-900">Document Viewer</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold text-mas-text">Document viewer</h1>
             <button
               onClick={handleBack}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="px-3 py-1.5 sm:px-4 sm:py-2 text-sm font-medium text-mas-text-secondary bg-mas-bg-subtle border border-mas-border rounded-md hover:bg-mas-bg-panel hover:text-mas-text transition-colors"
             >
-              Back to Sessions
+              Back
             </button>
           </div>
         </div>
 
         {/* No session warning */}
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
           <div className="max-w-md text-center">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-              <svg className="mx-auto h-12 w-12 text-yellow-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <h3 className="text-lg font-medium text-yellow-900 mb-2">No Session Selected</h3>
-              <p className="text-sm text-yellow-700 mb-4">
+            <div className="bg-mas-bg-panel border border-mas-border rounded-lg p-4 sm:p-6">
+              <div className="mx-auto h-12 w-12 text-mas-status-warning mb-4 flex items-center justify-center text-4xl">!</div>
+              <h3 className="text-lg font-medium text-mas-text mb-2">No session selected</h3>
+              <p className="text-sm text-mas-text-secondary mb-4">
                 Please select a session first to view its documents.
               </p>
               <button
                 onClick={() => navigate('/')}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-mas-bg-root bg-mas-blue hover:bg-mas-blue-soft transition-colors"
               >
-                Go to Session Selector
+                Go to session selector
               </button>
             </div>
           </div>
@@ -154,27 +160,86 @@ const DocumentViewer: React.FC = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-full flex flex-col bg-mas-bg-root">
       {/* Header */}
-      <div className="border-b border-gray-200 px-4 py-2 flex items-center">
+      <div className="bg-mas-bg-panel border-b border-mas-border px-3 sm:px-4 py-2 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center min-w-0">
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="md:hidden p-2 -ml-1 mr-2 text-mas-text-secondary hover:bg-mas-bg-subtle hover:text-mas-text transition-colors rounded"
+          >
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+
+          <button
+            onClick={handleBack}
+            className="hidden sm:block mr-4 px-3 py-1 text-mas-text-secondary hover:bg-mas-bg-subtle hover:text-mas-text transition-colors rounded"
+          >
+            Back
+          </button>
+
+          {/* Breadcrumb */}
+          <div className="flex items-center text-sm sm:text-base min-w-0">
+            <span className="font-medium text-mas-text truncate">Docs</span>
+            {selectedAgent && (
+              <>
+                <ChevronRight size={16} className="mx-1 text-mas-text-muted flex-shrink-0" />
+                <span className="text-mas-text-secondary truncate">{selectedAgent}</span>
+              </>
+            )}
+            {selectedDocument && (
+              <>
+                <ChevronRight size={16} className="mx-1 text-mas-text-muted flex-shrink-0 hidden sm:block" />
+                <span className="text-mas-text-muted truncate hidden sm:block">{selectedDocument.split('/').pop()}</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile back button */}
         <button
           onClick={handleBack}
-          className="mr-4 px-3 py-1 hover:bg-gray-100 transition-colors"
+          className="sm:hidden px-3 py-1 text-sm text-mas-text-secondary hover:bg-mas-bg-subtle hover:text-mas-text transition-colors rounded"
         >
-          ← Back
+          Back
         </button>
-        <h1 className="text-lg font-medium">MAS Documentation</h1>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Tree View */}
-        <div className="w-80 border-r border-gray-200 overflow-y-auto">
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Mobile overlay */}
+        {sidebarOpen && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-20"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Tree View Sidebar - Desktop: always visible, Mobile: slide-in */}
+        {/* Desktop version */}
+        <div className="hidden md:block w-80 border-r border-mas-border overflow-y-auto bg-mas-bg-panel flex-shrink-0">
           <TreeView
             units={units}
             selectedAgent={selectedAgent}
             onSelectAgent={setSelectedAgent}
           />
+        </div>
+
+        {/* Mobile version */}
+        <div className={`
+          md:hidden fixed inset-y-0 left-0 z-30
+          w-72 border-r border-mas-border overflow-y-auto bg-mas-bg-panel
+          transform transition-transform duration-200 ease-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}>
+          <div className="pt-14">
+            <TreeView
+              units={units}
+              selectedAgent={selectedAgent}
+              onSelectAgent={handleAgentSelect}
+            />
+          </div>
         </div>
 
         {/* Document Content */}

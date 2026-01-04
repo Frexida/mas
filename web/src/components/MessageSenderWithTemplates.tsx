@@ -506,17 +506,17 @@ export const MessageSenderWithTemplates: React.FC<MessageSenderProps> = ({ tmuxS
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="bg-mas-bg-panel border border-mas-border rounded-lg p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
-          <Terminal className="text-blue-600" size={24} />
-          <h3 className="text-lg font-semibold text-gray-800">
+          <Terminal className="text-mas-blue" size={24} />
+          <h3 className="text-lg font-semibold text-mas-text">
             メッセージ送信: {tmuxSession}
           </h3>
         </div>
         <button
           onClick={() => setShowTemplates(!showTemplates)}
-          className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-mas-purple text-mas-bg-root rounded hover:bg-mas-purple-soft transition-colors"
         >
           <FileText size={18} />
           <span>テンプレート</span>
@@ -528,18 +528,18 @@ export const MessageSenderWithTemplates: React.FC<MessageSenderProps> = ({ tmuxS
       </div>
 
       {showTemplates && (
-        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-          <h4 className="font-semibold mb-3 text-gray-800">プロンプトテンプレート</h4>
+        <div className="mb-4 p-4 bg-mas-bg-subtle rounded-lg border border-mas-border">
+          <h4 className="font-semibold mb-3 text-mas-text">プロンプトテンプレート</h4>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <h5 className="font-medium text-sm text-gray-600 mb-2">カテゴリ選択</h5>
+              <h5 className="font-medium text-sm text-mas-text-secondary mb-2">カテゴリ選択</h5>
               <div className="space-y-2">
                 <button
                   onClick={() => setSelectedCategory('metaManager')}
                   className={`w-full text-left px-3 py-2 rounded ${
                     selectedCategory === 'metaManager'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-white hover:bg-gray-100'
+                      ? 'bg-mas-blue-muted text-mas-blue'
+                      : 'bg-mas-bg-panel hover:bg-mas-bg-root text-mas-text-secondary'
                   }`}
                 >
                   メタマネージャー用
@@ -548,8 +548,8 @@ export const MessageSenderWithTemplates: React.FC<MessageSenderProps> = ({ tmuxS
                   onClick={() => setSelectedCategory('unitManager')}
                   className={`w-full text-left px-3 py-2 rounded ${
                     selectedCategory === 'unitManager'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-white hover:bg-gray-100'
+                      ? 'bg-mas-blue-muted text-mas-blue'
+                      : 'bg-mas-bg-panel hover:bg-mas-bg-root text-mas-text-secondary'
                   }`}
                 >
                   ユニットマネージャー用
@@ -558,8 +558,8 @@ export const MessageSenderWithTemplates: React.FC<MessageSenderProps> = ({ tmuxS
                   onClick={() => setSelectedCategory('worker')}
                   className={`w-full text-left px-3 py-2 rounded ${
                     selectedCategory === 'worker'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-white hover:bg-gray-100'
+                      ? 'bg-mas-blue-muted text-mas-blue'
+                      : 'bg-mas-bg-panel hover:bg-mas-bg-root text-mas-text-secondary'
                   }`}
                 >
                   ワーカー用
@@ -568,8 +568,8 @@ export const MessageSenderWithTemplates: React.FC<MessageSenderProps> = ({ tmuxS
                   onClick={() => setSelectedCategory('general')}
                   className={`w-full text-left px-3 py-2 rounded ${
                     selectedCategory === 'general'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-white hover:bg-gray-100'
+                      ? 'bg-mas-blue-muted text-mas-blue'
+                      : 'bg-mas-bg-panel hover:bg-mas-bg-root text-mas-text-secondary'
                   }`}
                 >
                   汎用
@@ -579,14 +579,14 @@ export const MessageSenderWithTemplates: React.FC<MessageSenderProps> = ({ tmuxS
             <div>
               {selectedCategory && (
                 <>
-                  <h5 className="font-medium text-sm text-gray-600 mb-2">テンプレート選択</h5>
+                  <h5 className="font-medium text-sm text-mas-text-secondary mb-2">テンプレート選択</h5>
                   <div className="space-y-2">
                     {Object.entries(promptTemplates[selectedCategory as keyof typeof promptTemplates]).map(
                       ([key, template]) => (
                         <button
                           key={key}
                           onClick={() => applyTemplate(template.template)}
-                          className="w-full text-left px-3 py-2 bg-white hover:bg-blue-50 rounded border border-gray-200"
+                          className="w-full text-left px-3 py-2 bg-mas-bg-panel hover:bg-mas-blue-muted hover:text-mas-blue rounded border border-mas-border text-mas-text-secondary"
                         >
                           {template.name}
                         </button>
@@ -602,7 +602,7 @@ export const MessageSenderWithTemplates: React.FC<MessageSenderProps> = ({ tmuxS
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-mas-text-secondary mb-1">
             送信先
           </label>
           {target === 'custom' ? (
@@ -610,14 +610,14 @@ export const MessageSenderWithTemplates: React.FC<MessageSenderProps> = ({ tmuxS
               type="text"
               value={target}
               onChange={(e) => setTarget(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-mas-bg-subtle border border-mas-border rounded-md text-mas-text placeholder-mas-text-muted focus:outline-none focus:ring-2 focus:ring-mas-blue focus:border-mas-blue"
               placeholder="カスタムターゲットを入力 (例: agent-14)"
             />
           ) : (
             <select
               value={target}
               onChange={(e) => setTarget(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-mas-bg-subtle border border-mas-border rounded-md text-mas-text focus:outline-none focus:ring-2 focus:ring-mas-blue focus:border-mas-blue"
             >
               {targetOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -629,13 +629,13 @@ export const MessageSenderWithTemplates: React.FC<MessageSenderProps> = ({ tmuxS
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-mas-text-secondary mb-1">
             メッセージ
           </label>
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+            className="w-full px-3 py-2 bg-mas-bg-subtle border border-mas-border rounded-md text-mas-text placeholder-mas-text-muted focus:outline-none focus:ring-2 focus:ring-mas-blue focus:border-mas-blue font-mono text-sm"
             rows={8}
             placeholder="メッセージまたはコマンドを入力..."
           />
@@ -647,9 +647,9 @@ export const MessageSenderWithTemplates: React.FC<MessageSenderProps> = ({ tmuxS
             id="execute"
             checked={execute}
             onChange={(e) => setExecute(e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="rounded border-mas-border bg-mas-bg-subtle text-mas-blue focus:ring-mas-blue"
           />
-          <label htmlFor="execute" className="text-sm text-gray-700">
+          <label htmlFor="execute" className="text-sm text-mas-text-secondary">
             コマンドとして実行（メッセージ送信後にEnterキーを送信）
           </label>
         </div>
@@ -658,8 +658,8 @@ export const MessageSenderWithTemplates: React.FC<MessageSenderProps> = ({ tmuxS
           <div
             className={`p-3 rounded-md flex items-start space-x-2 ${
               result.type === 'success'
-                ? 'bg-green-50 text-green-800'
-                : 'bg-red-50 text-red-800'
+                ? 'bg-mas-bg-subtle text-mas-status-ok'
+                : 'bg-mas-bg-subtle text-mas-status-error'
             }`}
           >
             {result.type === 'success' ? (
@@ -676,8 +676,8 @@ export const MessageSenderWithTemplates: React.FC<MessageSenderProps> = ({ tmuxS
           disabled={isSending}
           className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-md transition-colors ${
             isSending
-              ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
+              ? 'bg-mas-bg-subtle text-mas-text-muted cursor-not-allowed'
+              : 'bg-mas-blue text-mas-bg-root hover:bg-mas-blue-soft'
           }`}
         >
           <Send size={18} />

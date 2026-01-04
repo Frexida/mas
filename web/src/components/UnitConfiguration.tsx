@@ -20,13 +20,13 @@ export const UnitConfiguration: React.FC<UnitConfigurationProps> = ({
   onRemoveWorker
 }) => {
   return (
-    <div className="border border-gray-200 rounded-lg p-4 mb-4">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+    <div className="border border-mas-border rounded-lg p-4 mb-4 bg-mas-bg-panel">
+      <h3 className="text-lg font-semibold text-mas-text mb-4">
         Unit {unitNumber}
       </h3>
-      
+
       <div className="mb-4">
-        <h4 className="text-md font-medium text-gray-800 mb-2">Manager</h4>
+        <h4 className="text-md font-medium text-mas-text-secondary mb-2">Manager</h4>
         <PromptInput
           id={unit.manager.id}
           label={`Unit ${unitNumber} Manager`}
@@ -41,7 +41,7 @@ export const UnitConfiguration: React.FC<UnitConfigurationProps> = ({
 
       <div>
         <div className="flex justify-between items-center mb-2">
-          <h4 className="text-md font-medium text-gray-800">
+          <h4 className="text-md font-medium text-mas-text-secondary">
             Workers ({unit.workers.length})
           </h4>
           <div className="flex gap-2">
@@ -49,9 +49,9 @@ export const UnitConfiguration: React.FC<UnitConfigurationProps> = ({
               <button
                 type="button"
                 onClick={onAddWorker}
-                className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                className="px-3 py-1 text-sm bg-mas-status-ok text-mas-bg-root rounded hover:opacity-90 transition-colors"
               >
-                + Add Worker
+                + Add worker
               </button>
             )}
           </div>
@@ -76,7 +76,7 @@ export const UnitConfiguration: React.FC<UnitConfigurationProps> = ({
                 <button
                   type="button"
                   onClick={() => onRemoveWorker(index)}
-                  className="px-3 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors mt-6"
+                  className="px-3 py-2 text-sm bg-mas-status-error text-mas-bg-root rounded hover:opacity-90 transition-colors mt-6"
                   title="Remove this worker"
                 >
                   × Remove

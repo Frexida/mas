@@ -73,17 +73,17 @@ export const MessageSender: React.FC<MessageSenderProps> = ({ tmuxSession }) => 
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="bg-mas-bg-panel border border-mas-border rounded-lg p-6">
       <div className="flex items-center space-x-2 mb-4">
-        <Terminal className="text-blue-600" size={24} />
-        <h3 className="text-lg font-semibold text-gray-800">
-          Send Message to Tmux Session: {tmuxSession}
+        <Terminal className="text-mas-blue" size={24} />
+        <h3 className="text-lg font-semibold text-mas-text">
+          Send message to: {tmuxSession}
         </h3>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-mas-text-secondary mb-1">
             Target
           </label>
           {target === 'custom' ? (
@@ -91,14 +91,14 @@ export const MessageSender: React.FC<MessageSenderProps> = ({ tmuxSession }) => 
               type="text"
               value={target}
               onChange={(e) => setTarget(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-mas-bg-subtle border border-mas-border rounded-md text-mas-text placeholder-mas-text-muted focus:outline-none focus:ring-2 focus:ring-mas-blue focus:border-mas-blue"
               placeholder="Enter custom target (e.g., agent-14)"
             />
           ) : (
             <select
               value={target}
               onChange={(e) => setTarget(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-mas-bg-subtle border border-mas-border rounded-md text-mas-text focus:outline-none focus:ring-2 focus:ring-mas-blue focus:border-mas-blue"
             >
               {targetOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -110,13 +110,13 @@ export const MessageSender: React.FC<MessageSenderProps> = ({ tmuxSession }) => 
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-mas-text-secondary mb-1">
             Message
           </label>
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 bg-mas-bg-subtle border border-mas-border rounded-md text-mas-text placeholder-mas-text-muted focus:outline-none focus:ring-2 focus:ring-mas-blue focus:border-mas-blue"
             rows={3}
             placeholder="Enter your message or command..."
           />
@@ -128,9 +128,9 @@ export const MessageSender: React.FC<MessageSenderProps> = ({ tmuxSession }) => 
             id="execute"
             checked={execute}
             onChange={(e) => setExecute(e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="rounded border-mas-border bg-mas-bg-subtle text-mas-blue focus:ring-mas-blue"
           />
-          <label htmlFor="execute" className="text-sm text-gray-700">
+          <label htmlFor="execute" className="text-sm text-mas-text-secondary">
             Execute as command (sends Enter key after message)
           </label>
         </div>
@@ -141,9 +141,9 @@ export const MessageSender: React.FC<MessageSenderProps> = ({ tmuxSession }) => 
             id="openspecProposal"
             checked={openspecProposal}
             onChange={(e) => setOpenspecProposal(e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="rounded border-mas-border bg-mas-bg-subtle text-mas-blue focus:ring-mas-blue"
           />
-          <label htmlFor="openspecProposal" className="text-sm text-gray-700">
+          <label htmlFor="openspecProposal" className="text-sm text-mas-text-secondary">
             Send as OpenSpec proposal (prepends /openspec:proposal)
           </label>
         </div>
@@ -152,8 +152,8 @@ export const MessageSender: React.FC<MessageSenderProps> = ({ tmuxSession }) => 
           <div
             className={`p-3 rounded-md flex items-start space-x-2 ${
               result.type === 'success'
-                ? 'bg-green-50 text-green-800'
-                : 'bg-red-50 text-red-800'
+                ? 'bg-mas-bg-subtle text-mas-status-ok'
+                : 'bg-mas-bg-subtle text-mas-status-error'
             }`}
           >
             {result.type === 'success' ? (
@@ -170,12 +170,12 @@ export const MessageSender: React.FC<MessageSenderProps> = ({ tmuxSession }) => 
           disabled={isSending}
           className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-md transition-colors ${
             isSending
-              ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
+              ? 'bg-mas-bg-subtle text-mas-text-muted cursor-not-allowed'
+              : 'bg-mas-blue text-mas-bg-root hover:bg-mas-blue-soft'
           }`}
         >
           <Send size={18} />
-          <span>{isSending ? 'Sending...' : 'Send Message'}</span>
+          <span>{isSending ? 'Sending...' : 'Send message'}</span>
         </button>
       </form>
     </div>
