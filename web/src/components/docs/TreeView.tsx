@@ -63,7 +63,7 @@ const TreeView: React.FC<TreeViewProps> = ({ units, selectedAgent, onSelectAgent
                     `}
                     onClick={() => onSelectAgent(agent.id)}
                   >
-                    <span className="text-mas-text-muted">{agent.id}:</span> {agent.name}
+                    {agent.id}
                   </div>
                 ))}
               </div>
