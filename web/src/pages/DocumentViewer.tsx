@@ -116,7 +116,6 @@ const DocumentViewer: React.FC = () => {
 
   const handleAgentSelect = (agentId: string | null) => {
     setSelectedAgent(agentId);
-    // モバイルでエージェント選択時にサイドバーを閉じる
     setSidebarOpen(false);
   };
 
@@ -124,7 +123,6 @@ const DocumentViewer: React.FC = () => {
   if (!sessionId) {
     return (
       <div className="h-full flex flex-col bg-mas-bg-root">
-        {/* Header */}
         <div className="bg-mas-bg-panel border-b border-mas-border px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <h1 className="text-xl sm:text-2xl font-semibold text-mas-text">Document viewer</h1>
@@ -137,7 +135,6 @@ const DocumentViewer: React.FC = () => {
           </div>
         </div>
 
-        {/* No session warning */}
         <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
           <div className="max-w-md text-center">
             <div className="bg-mas-bg-panel border border-mas-border rounded-lg p-4 sm:p-6">
@@ -164,10 +161,10 @@ const DocumentViewer: React.FC = () => {
       {/* Header */}
       <div className="bg-mas-bg-panel border-b border-mas-border px-3 sm:px-4 py-2 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center min-w-0">
-          {/* Mobile menu button */}
+          {/* Sidebar toggle button - visible on all screens below xl */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="md:hidden p-2 -ml-1 mr-2 text-mas-text-secondary hover:bg-mas-bg-subtle hover:text-mas-text transition-colors rounded"
+            className="xl:hidden p-2 -ml-1 mr-2 text-mas-text-secondary hover:bg-mas-bg-subtle hover:text-mas-text transition-colors rounded"
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -208,32 +205,22 @@ const DocumentViewer: React.FC = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Mobile overlay */}
+        {/* Overlay for sidebar */}
         {sidebarOpen && (
           <div
-            className="md:hidden fixed inset-0 bg-black/50 z-20"
+            className="xl:hidden fixed inset-0 bg-black/50 z-20"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
-        {/* Tree View Sidebar - Desktop: always visible, Mobile: slide-in */}
-        {/* Desktop version */}
-        <div className="hidden md:block w-80 border-r border-mas-border overflow-y-auto bg-mas-bg-panel flex-shrink-0">
-          <TreeView
-            units={units}
-            selectedAgent={selectedAgent}
-            onSelectAgent={setSelectedAgent}
-          />
-        </div>
-
-        {/* Mobile version */}
+        {/* Tree View Sidebar - xl: always visible, below: slide-in */}
         <div className={`
-          md:hidden fixed inset-y-0 left-0 z-30
-          w-72 border-r border-mas-border overflow-y-auto bg-mas-bg-panel
-          transform transition-transform duration-200 ease-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          fixed xl:relative inset-y-0 left-0 z-30 xl:z-0
+          w-56 border-r border-mas-border overflow-y-auto bg-mas-bg-panel flex-shrink-0
+          transform transition-transform duration-200 ease-out xl:transform-none
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}
         `}>
-          <div className="pt-14">
+          <div className="pt-12 xl:pt-0">
             <TreeView
               units={units}
               selectedAgent={selectedAgent}

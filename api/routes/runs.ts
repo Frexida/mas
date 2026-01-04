@@ -67,7 +67,7 @@ app.post('/', async (c) => {
     try {
       const { stdout, stderr } = await execAsync(command, {
         cwd: MAS_ROOT,
-        timeout: 30000, // 30 second timeout for session creation
+        timeout: 120000, // 120 second timeout for session creation (includes npm install)
         env: {
           ...process.env,
           MAS_SESSION_ID: sessionId,

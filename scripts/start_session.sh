@@ -196,15 +196,22 @@ start_agent_in_pane() {
     tmux send-keys -t "$MAS_SESSION_NAME:$window.$pane" "claude --model $model --dangerously-skip-permissions" C-m
 }
 
-# セッション開始時に一度だけclaude-codeをインストール
-print_info "Installing claude-code@1.0.100..."
-npm install -g @anthropic-ai/claude-code@1.0.100
-sleep 3
+# バージョン固定インストール関数
+install_claude_code() {
+    sleep 3
+    print_info "Installing claude-code@1.0.100..."
+    # 既存のインストールをクリーンアップしてからインストール
+    rm -rf ~/.local/npm-global/lib/node_modules/@anthropic-ai/claude-code 2>/dev/null || true
+    npm install -g @anthropic-ai/claude-code@1.0.100
+    sleep 3
+}
 
 # Meta Manager (00) - Window 1
+install_claude_code
 start_agent_in_pane 1 0 "00"
 
 # Unit 1 - Window 2
+install_claude_code
 tmux split-window -t "$MAS_SESSION_NAME:2" -h
 tmux split-window -t "$MAS_SESSION_NAME:2.0" -v
 tmux split-window -t "$MAS_SESSION_NAME:2.2" -v
@@ -214,6 +221,7 @@ start_agent_in_pane 2 2 "12"
 start_agent_in_pane 2 3 "13"
 
 # Unit 2 - Window 3
+install_claude_code
 tmux split-window -t "$MAS_SESSION_NAME:3" -h
 tmux split-window -t "$MAS_SESSION_NAME:3.0" -v
 tmux split-window -t "$MAS_SESSION_NAME:3.2" -v
@@ -223,6 +231,7 @@ start_agent_in_pane 3 2 "22"
 start_agent_in_pane 3 3 "23"
 
 # Unit 3 - Window 4
+install_claude_code
 tmux split-window -t "$MAS_SESSION_NAME:4" -h
 tmux split-window -t "$MAS_SESSION_NAME:4.0" -v
 tmux split-window -t "$MAS_SESSION_NAME:4.2" -v

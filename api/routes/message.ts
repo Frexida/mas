@@ -5,6 +5,8 @@ import { promisify } from 'util';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { MessageRequestSchema, type MessageResponse } from '../validators/message.js';
+import { MessageLogService } from '../core/services/messageLogService.js';
+import { FileMessageLogStore } from '../core/stores/fileMessageLogStore.js';
 
 const execAsync = promisify(exec);
 
@@ -14,6 +16,11 @@ const app = new Hono();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const MAS_ROOT = path.resolve(__dirname, '../../');
+
+// Initialize message log service
+const sessionsPath = path.resolve(MAS_ROOT, 'sessions');
+const messageLogStore = new FileMessageLogStore(sessionsPath);
+const messageLogService = new MessageLogService(messageLogStore);
 
 // POST /message - Send message to agents
 app.post('/', async (c) => {
@@ -96,25 +103,22 @@ app.post('/', async (c) => {
         console.log('mas send stderr:', stderr);
       }
 
-      // Send "EOF" after 3 seconds for all messages (unconditionally)
-      // This is required for Claude Code specification
-      setTimeout(async () => {
-        try {
-          const execCmd = `${MAS_ROOT}/mas send "${target}" "EOF" -e`;
-          const { stdout: execStdout, stderr: execStderr } = await execAsync(execCmd, {
-            cwd: MAS_ROOT,
-            env: { ...process.env, MAS_SESSION_NAME: sessionName },
-            timeout: 10000
-          });
+      // Log the message
+      try {
+        await messageLogService.logMessage({
+          sessionId: sessionName,
+          sender: validated.sender || 'unknown',
+          target: validated.target,
+          message: validated.message,
+          execute: validated.execute,
+        });
+        console.log('Message logged successfully');
+      } catch (logError) {
+        console.error('Failed to log message:', logError);
+        // Don't fail the request if logging fails
+      }
 
-          if (execStderr) {
-            console.log('mas send execution stderr:', execStderr);
-          }
-          console.log('[Auto EOF] Sent "EOF" with Enter key after 3 seconds');
-        } catch (execError: any) {
-          console.error('[Auto EOF] Failed to send "EOF" command:', execError);
-        }
-      }, 3000);
+      // EOF is sent by mas-core.sh (cmd_send) after 3 seconds
 
       const response: MessageResponse = {
         status: 'acknowledged',
@@ -149,6 +153,42 @@ app.post('/', async (c) => {
     return c.json({
       error: 'Internal server error'
     }, 500);
+  }
+});
+
+// POST /message/log - Log a message (called by mas send command)
+const LogMessageSchema = z.object({
+  sessionId: z.string().min(1),
+  sender: z.string().default('unknown'),
+  target: z.string().min(1),
+  message: z.string(),
+  execute: z.boolean().default(true),
+});
+
+app.post('/log', async (c) => {
+  try {
+    const body = await c.req.json();
+    const validated = LogMessageSchema.parse(body);
+
+    await messageLogService.logMessage({
+      sessionId: validated.sessionId,
+      sender: validated.sender,
+      target: validated.target,
+      message: validated.message,
+      execute: validated.execute,
+    });
+
+    return c.json({ status: 'logged', timestamp: new Date().toISOString() }, 200);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({
+        error: 'Validation error',
+        details: error.errors,
+      }, 400);
+    }
+
+    console.error('Failed to log message:', error);
+    return c.json({ error: 'Internal server error' }, 500);
   }
 });
 

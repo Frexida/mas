@@ -9,6 +9,8 @@ import statusRoute from './routes/status.js';
 import sessionsRoute from './routes/sessions.js';
 import docsRoute from './core/routes/docs.js';
 import templatesRoute from './core/routes/templates.js';
+import messagesRoute from './core/routes/messages.js';
+import monitorRoute from './core/routes/monitor.js';
 
 const app = new Hono();
 
@@ -76,6 +78,8 @@ app.route('/sessions', sessionsRoute);
 app.route('/session', sessionsRoute);
 app.route('/docs', docsRoute);
 app.route('/templates', templatesRoute);
+app.route('/messages', messagesRoute);
+app.route('/monitor', monitorRoute);
 
 // Start server
 const port = Number(process.env.MAS_API_PORT || 8765);

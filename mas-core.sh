@@ -91,6 +91,21 @@ EOF
 }
 
 # =============================================================================
+# ユーティリティ関数
+# =============================================================================
+
+# JSONエスケープ関数（メッセージログAPI用）
+json_escape() {
+    local str="$1"
+    # Use printf and sed to escape special characters for JSON
+    printf '%s' "$str" | sed -e 's/\\/\\\\/g' \
+                              -e 's/"/\\"/g' \
+                              -e 's/\t/\\t/g' \
+                              -e ':a;N;$!ba;s/\n/\\n/g' \
+                              -e 's/\r/\\r/g'
+}
+
+# =============================================================================
 # コマンド実装
 # =============================================================================
 
@@ -446,6 +461,19 @@ cmd_send() {
 
     # メッセージ送信
     route_message "$target" "$message" "$execute"
+
+    # メッセージログをAPIに送信（バックグラウンドで）
+    {
+        local api_port="${MAS_API_PORT:-8765}"
+        local sender="${from:-unknown}"
+        # JSON用にメッセージをエスケープ
+        local escaped_message
+        escaped_message=$(json_escape "$message")
+        curl -s -X POST "http://localhost:${api_port}/message/log" \
+            -H "Content-Type: application/json" \
+            -d "{\"sessionId\":\"$SESSION_NAME\",\"sender\":\"$sender\",\"target\":\"$target\",\"message\":\"$escaped_message\",\"execute\":$execute}" \
+            >/dev/null 2>&1 || true
+    } &
 
     # Claude Code互換性のため、3秒後にEOFを自動送信
     # バックグラウンドで実行して即座に制御を返す
