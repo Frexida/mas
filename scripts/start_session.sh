@@ -196,40 +196,63 @@ start_agent_in_pane() {
     tmux send-keys -t "$MAS_SESSION_NAME:$window.$pane" "claude --model $model --dangerously-skip-permissions" C-m
 }
 
-# セッション開始時に一度だけclaude-codeをインストール
-print_info "Installing claude-code@1.0.100..."
-npm install -g @anthropic-ai/claude-code@1.0.100
+# バージョン固定関数
+lock_claude_version() {
+    print_info "Installing claude-code@1.0.100 (version lock)..."
+    npm install -g @anthropic-ai/claude-code@1.0.100
+}
+
+# ユニット起動関数 (npm install -> 3秒待機 -> 4エージェント起動 -> 3秒待機)
+start_unit() {
+    local unit_name="$1"
+    local window="$2"
+    local agents=("${@:3}")  # 残りの引数はエージェントID
+
+    print_info "=== Starting $unit_name ==="
+
+    # Step 1: npm install でバージョン固定
+    lock_claude_version
+
+    # Step 2: 3秒待機
+    print_info "Waiting 3 seconds before starting agents..."
+    sleep 3
+
+    # Step 3: エージェント起動 (4体まで)
+    local pane=0
+    for agent_id in "${agents[@]}"; do
+        start_agent_in_pane "$window" "$pane" "$agent_id"
+        ((pane++))
+    done
+
+    # Step 4: 3秒待機
+    print_info "Waiting 3 seconds after starting $unit_name..."
+    sleep 3
+}
+
+# Meta Manager (00) - Window 1 (1エージェントのみ)
+print_info "=== Starting Meta Manager ==="
+lock_claude_version
+sleep 3
+start_agent_in_pane 1 0 "00"
 sleep 3
 
-# Meta Manager (00) - Window 1
-start_agent_in_pane 1 0 "00"
-
-# Unit 1 - Window 2
+# Unit 1 - Window 2 (4エージェント)
 tmux split-window -t "$MAS_SESSION_NAME:2" -h
 tmux split-window -t "$MAS_SESSION_NAME:2.0" -v
 tmux split-window -t "$MAS_SESSION_NAME:2.2" -v
-start_agent_in_pane 2 0 "10"
-start_agent_in_pane 2 1 "11"
-start_agent_in_pane 2 2 "12"
-start_agent_in_pane 2 3 "13"
+start_unit "Unit 1" 2 "10" "11" "12" "13"
 
-# Unit 2 - Window 3
+# Unit 2 - Window 3 (4エージェント)
 tmux split-window -t "$MAS_SESSION_NAME:3" -h
 tmux split-window -t "$MAS_SESSION_NAME:3.0" -v
 tmux split-window -t "$MAS_SESSION_NAME:3.2" -v
-start_agent_in_pane 3 0 "20"
-start_agent_in_pane 3 1 "21"
-start_agent_in_pane 3 2 "22"
-start_agent_in_pane 3 3 "23"
+start_unit "Unit 2" 3 "20" "21" "22" "23"
 
-# Unit 3 - Window 4
+# Unit 3 - Window 4 (4エージェント)
 tmux split-window -t "$MAS_SESSION_NAME:4" -h
 tmux split-window -t "$MAS_SESSION_NAME:4.0" -v
 tmux split-window -t "$MAS_SESSION_NAME:4.2" -v
-start_agent_in_pane 4 0 "30"
-start_agent_in_pane 4 1 "31"
-start_agent_in_pane 4 2 "32"
-start_agent_in_pane 4 3 "33"
+start_unit "Unit 3" 4 "30" "31" "32" "33"
 
 print_success "Session $MAS_SESSION_NAME created successfully"
 
